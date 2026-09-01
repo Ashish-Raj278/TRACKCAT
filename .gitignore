@@ -1,0 +1,20 @@
+# Virtual environments
+venv/
+.venv/
+backend/venv/
+
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+backend/**/__pycache__/
+
+# SQLite databases
+*.db
+*.sqlite3
+backend/*.db
+
+# Pytest & IDE
+.pytest_cache/
+.vscode/
+.idea/
