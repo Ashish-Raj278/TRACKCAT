@@ -56,14 +56,14 @@ def seed_database():
         print("Seeding Assets...")
         # 12 Assets spanning 6 types with distinct operational profiles
         assets_data = [
-            # 1. Normal active rental
+            # 1. Active rental due soon (Expected return in ~6 hours)
             {
                 "equipment_id": "EQ-CAT-320",
                 "type": "Hydraulic Excavator",
                 "status": "rented",
                 "current_site": "Downtown Metro Rail Extension",
                 "checkout_date": now - timedelta(days=5),
-                "expected_checkin_date": now + timedelta(days=7),
+                "expected_checkin_date": now + timedelta(hours=6),  # DUE SOON (6 hrs)
                 "engine_hours_per_day": 7.5,
                 "idle_hours_per_day": 1.8,
                 "operating_days": 15,
@@ -108,14 +108,14 @@ def seed_database():
                 "operating_days": 20,
                 "last_operator_id": 4,
             },
-            # 5. Low Utilization Equipment (1.2h/day engine while rented)
+            # 5. Low Utilization + Due Soon (1.2h/day engine, expected return in ~14 hours)
             {
                 "equipment_id": "EQ-CAT-950",
                 "type": "Wheel Loader",
                 "status": "rented",
                 "current_site": "Apex Commercial Hub & Tower",
                 "checkout_date": now - timedelta(days=10),
-                "expected_checkin_date": now + timedelta(days=4),
+                "expected_checkin_date": now + timedelta(hours=14),  # DUE SOON (14 hrs)
                 "engine_hours_per_day": 1.2,
                 "idle_hours_per_day": 0.8,
                 "operating_days": 10,
@@ -227,7 +227,7 @@ def seed_database():
             {
                 "asset_id": 1, "site_id": 1, "operator_id": 1,
                 "checkout_time": now - timedelta(days=5),
-                "expected_return_time": now + timedelta(days=7),
+                "expected_return_time": now + timedelta(hours=6),  # Due Soon (6h)
                 "checkin_time": None, "status": "active"
             },
             {
@@ -245,7 +245,7 @@ def seed_database():
             {
                 "asset_id": 5, "site_id": 5, "operator_id": 5,
                 "checkout_time": now - timedelta(days=10),
-                "expected_return_time": now + timedelta(days=4),
+                "expected_return_time": now + timedelta(hours=14),  # Due Soon (14h)
                 "checkin_time": None, "status": "active"
             },
             {

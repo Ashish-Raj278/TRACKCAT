@@ -3,6 +3,12 @@ venv/
 .venv/
 backend/venv/
 
+# Node
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+
 # Python bytecode & cache
 __pycache__/
 *.py[cod]
@@ -18,3 +24,4 @@ backend/*.db
 .pytest_cache/
 .vscode/
 .idea/
+

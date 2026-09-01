@@ -12,7 +12,8 @@ import {
   PlusCircle,
   Clock,
   CheckCircle2,
-  Gauge
+  Gauge,
+  QrCode
 } from 'lucide-react';
 import { getAssets } from '../services/api';
 import StatusBadge from '../components/StatusBadge';
@@ -21,6 +22,7 @@ import ErrorMessage from '../components/ErrorMessage';
 import CheckoutModal from '../components/CheckoutModal';
 import CheckinModal from '../components/CheckinModal';
 import UsageLogModal from '../components/UsageLogModal';
+import AssetQRModal from '../components/AssetQRModal';
 
 export default function AssetsList() {
   const [assets, setAssets] = useState([]);
@@ -37,6 +39,7 @@ export default function AssetsList() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [checkinOpen, setCheckinOpen] = useState(false);
   const [usageLogOpen, setUsageLogOpen] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
 
   const fetchFleetAssets = async () => {
     try {
@@ -224,12 +227,25 @@ export default function AssetsList() {
 
               {/* Action Buttons */}
               <div className="mt-5 pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2">
-                <Link
-                  to={`/assets/${asset.id}`}
-                  className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:bg-slate-700 transition"
-                >
-                  Full Specs
-                </Link>
+                <div className="flex items-center gap-1.5">
+                  <Link
+                    to={`/assets/${asset.id}`}
+                    className="rounded-xl border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs font-semibold text-slate-300 hover:bg-slate-700 transition"
+                  >
+                    Specs
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setSelectedAsset(asset);
+                      setQrOpen(true);
+                    }}
+                    title="View Asset QR Code"
+                    className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-2 py-1.5 text-xs font-medium text-[#FFCD11] hover:bg-amber-500/20 transition flex items-center gap-1"
+                  >
+                    <QrCode className="h-3.5 w-3.5" />
+                    QR
+                  </button>
+                </div>
 
                 <div className="flex gap-2">
                   <button
@@ -294,6 +310,11 @@ export default function AssetsList() {
         isOpen={usageLogOpen}
         onClose={() => setUsageLogOpen(false)}
         onSuccess={handleActionSuccess}
+      />
+      <AssetQRModal
+        asset={selectedAsset}
+        isOpen={qrOpen}
+        onClose={() => setQrOpen(false)}
       />
     </div>
   );

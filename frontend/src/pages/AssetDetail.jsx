@@ -13,7 +13,8 @@ import {
   Clock,
   PlusCircle,
   TrendingUp,
-  FileText
+  FileText,
+  QrCode
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -32,6 +33,7 @@ import ErrorMessage from '../components/ErrorMessage';
 import CheckoutModal from '../components/CheckoutModal';
 import CheckinModal from '../components/CheckinModal';
 import UsageLogModal from '../components/UsageLogModal';
+import AssetQRModal from '../components/AssetQRModal';
 
 export default function AssetDetail() {
   const { id } = useParams();
@@ -44,6 +46,7 @@ export default function AssetDetail() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [checkinOpen, setCheckinOpen] = useState(false);
   const [usageLogOpen, setUsageLogOpen] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
 
   const fetchAssetDetails = async () => {
     try {
@@ -107,7 +110,14 @@ export default function AssetDetail() {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setQrOpen(true)}
+            className="inline-flex items-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-2.5 text-xs font-bold text-[#FFCD11] hover:bg-amber-500/20 transition"
+          >
+            <QrCode className="h-4 w-4" />
+            Asset QR Code
+          </button>
           <button
             onClick={() => setUsageLogOpen(true)}
             className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-xs font-semibold text-white hover:bg-slate-700 transition"
@@ -272,6 +282,11 @@ export default function AssetDetail() {
         isOpen={usageLogOpen}
         onClose={() => setUsageLogOpen(false)}
         onSuccess={handleActionSuccess}
+      />
+      <AssetQRModal
+        asset={asset}
+        isOpen={qrOpen}
+        onClose={() => setQrOpen(false)}
       />
     </div>
   );

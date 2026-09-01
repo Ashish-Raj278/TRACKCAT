@@ -54,7 +54,7 @@ export default function Dashboard() {
 
       setStats(statsData);
       setAnomalies(anomaliesData?.anomalies || []);
-      setAlerts(alertsData || { overdue_items: [], due_soon_items: [] });
+      setAlerts(alertsData || { total_alerts: 0, critical_count: 0, warning_count: 0, alerts: [], overdue_items: [], due_soon_items: [] });
       setAllAssets(assetsData || []);
       setRecentAssets((assetsData || []).slice(0, 6));
     } catch (err) {
@@ -113,6 +113,52 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* ====== ATTENTION REQUIRED BANNER ====== */}
+      {(alerts.total_alerts > 0) && (
+        <div className="rounded-2xl border border-rose-700/50 bg-rose-950/20 p-5 shadow-xl">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-500/30 text-rose-400">
+              <AlertTriangle className="h-4 w-4" />
+            </div>
+            <div>
+              <h3 className="font-bold text-white text-sm">⚠ Attention Required</h3>
+              <p className="text-[11px] text-rose-300/70">{alerts.critical_count} overdue · {alerts.warning_count} due soon</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {(alerts.alerts || []).slice(0, 4).map(alert => (
+              <div
+                key={alert.id}
+                className={`flex items-center justify-between rounded-xl border p-3 ${
+                  alert.severity === 'critical'
+                    ? 'border-rose-700/50 bg-rose-950/40'
+                    : 'border-amber-700/50 bg-amber-950/40'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <span className="text-xs font-black text-white">{alert.equipment_id}</span>
+                    <span className="text-[10px] text-slate-400">{alert.asset_type}</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">{alert.site}</p>
+                </div>
+                <div className="text-right">
+                  {alert.severity === 'critical' ? (
+                    <span className="inline-block rounded-md bg-rose-900/80 px-2 py-0.5 text-xs font-bold text-rose-300 border border-rose-600/40">
+                      +{alert.overdue_days}d overdue
+                    </span>
+                  ) : (
+                    <span className="inline-block rounded-md bg-amber-900/80 px-2 py-0.5 text-xs font-bold text-amber-300 border border-amber-600/40">
+                      Due in {Math.round(alert.hours_remaining)}h
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
@@ -138,11 +184,11 @@ export default function Dashboard() {
         />
         <StatCard
           title="Return Alerts"
-          value={(alerts?.overdue_items?.length || 0) + (alerts?.due_soon_items?.length || 0)}
-          subtitle={`${alerts?.overdue_items?.length || 0} overdue • ${alerts?.due_soon_items?.length || 0} due soon`}
+          value={alerts?.total_alerts ?? ((alerts?.overdue_items?.length || 0) + (alerts?.due_soon_items?.length || 0))}
+          subtitle={`${alerts?.critical_count ?? alerts?.overdue_items?.length ?? 0} overdue • ${alerts?.warning_count ?? alerts?.due_soon_items?.length ?? 0} due soon`}
           icon={AlertTriangle}
           color="rose"
-          alert={(alerts?.overdue_items?.length || 0) > 0}
+          alert={(alerts?.critical_count ?? alerts?.overdue_items?.length ?? 0) > 0}
         />
       </div>
 

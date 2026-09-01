@@ -219,6 +219,22 @@ class ForecastResponse(BaseModel):
     forecasts: List[ForecastItem]
 
 
+class AlertItem(BaseModel):
+    id: str
+    type: str  # OVERDUE, DUE_SOON
+    severity: str  # critical, warning
+    equipment_id: str
+    asset_type: str
+    site: str
+    expected_return_time: datetime
+    overdue_hours: Optional[float] = None
+    hours_remaining: Optional[float] = None
+    overdue_days: Optional[float] = None
+    message: str
+    rental_id: Optional[int] = None
+    operator_name: Optional[str] = None
+
+
 class OverdueItem(BaseModel):
     equipment_id: str
     type: str
@@ -249,10 +265,13 @@ class OverdueResponse(BaseModel):
 
 class AlertsResponse(BaseModel):
     total_alerts: int
-    total_overdue: int
-    total_due_soon: int
-    overdue_items: List[OverdueItem]
-    due_soon_items: List[DueSoonItem]
+    critical_count: int
+    warning_count: int
+    alerts: List[AlertItem]
+    total_overdue: Optional[int] = 0
+    total_due_soon: Optional[int] = 0
+    overdue_items: Optional[List[OverdueItem]] = []
+    due_soon_items: Optional[List[DueSoonItem]] = []
 
 
 class SiteUsageSummary(BaseModel):

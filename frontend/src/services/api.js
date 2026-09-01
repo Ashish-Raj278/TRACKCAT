@@ -353,14 +353,32 @@ export async function getOverdue() {
 
 /**
  * GET /api/analytics/alerts
- * Fleet-wide alerts including overdue returns and approaching due-soon reminders (next 48h)
+ * Fleet alerts: OVERDUE (critical) and DUE_SOON (warning) sorted by priority
  */
 export async function getAlerts() {
   const data = await request('/analytics/alerts');
   if (data !== null) return data;
+  const overdueAlerts = (mockOverdue.overdue_items || []).map((o, i) => ({
+    id: `overdue-${i + 1}`,
+    type: 'OVERDUE',
+    severity: 'critical',
+    equipment_id: o.equipment_id,
+    asset_type: o.type,
+    site: o.site,
+    expected_return_time: o.expected_return_date,
+    overdue_hours: o.hours_overdue || o.overdue_days * 24,
+    overdue_days: o.overdue_days,
+    hours_remaining: null,
+    message: `${o.equipment_id} is overdue by ${o.overdue_days} day(s).`,
+    rental_id: o.rental_id,
+    operator_name: o.operator_name,
+  }));
   return {
-    total_alerts: (mockOverdue.overdue_items || []).length,
-    total_overdue: (mockOverdue.overdue_items || []).length,
+    total_alerts: overdueAlerts.length,
+    critical_count: overdueAlerts.length,
+    warning_count: 0,
+    alerts: overdueAlerts,
+    total_overdue: overdueAlerts.length,
     total_due_soon: 0,
     overdue_items: mockOverdue.overdue_items || [],
     due_soon_items: [],
