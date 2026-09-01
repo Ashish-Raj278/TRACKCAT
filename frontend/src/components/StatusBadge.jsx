@@ -3,8 +3,8 @@ import React from 'react';
 export default function StatusBadge({ status, isOverdue }) {
   if (isOverdue) {
     return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-950/80 text-rose-300 border border-rose-600/40">
-        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+      <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#B91C1C]">
+        <span className="w-1.5 h-1.5 rounded-full bg-[#B91C1C]"></span>
         Overdue
       </span>
     );
@@ -15,28 +15,30 @@ export default function StatusBadge({ status, isOverdue }) {
   switch (normalized) {
     case 'available':
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-950/80 text-emerald-300 border border-emerald-600/40">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+        <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#15803D]">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#15803D]"></span>
           Available
         </span>
       );
     case 'rented':
+    case 'active':
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-950/80 text-amber-300 border border-amber-500/40">
-          <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-          Rented / Active
+        <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#0E7490]">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#0E7490]"></span>
+          On Rent
         </span>
       );
     case 'maintenance':
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-600/50">
-          <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+        <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#627D98]">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#627D98]"></span>
           Maintenance
         </span>
       );
     default:
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-300">
+        <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#486581]">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#829AB1]"></span>
           {status || 'Unknown'}
         </span>
       );

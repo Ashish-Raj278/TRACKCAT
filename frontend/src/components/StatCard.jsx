@@ -1,30 +1,42 @@
 import React from 'react';
 
-export default function StatCard({ title, value, subtitle, icon: Icon, color = 'amber', alert = false }) {
-  const colorMap = {
-    amber: 'from-amber-500/10 to-yellow-500/5 border-amber-500/30 text-amber-400',
-    emerald: 'from-emerald-500/10 to-teal-500/5 border-emerald-500/30 text-emerald-400',
-    blue: 'from-blue-500/10 to-cyan-500/5 border-blue-500/30 text-blue-400',
-    rose: 'from-rose-500/10 to-red-500/5 border-rose-500/30 text-rose-400',
-    purple: 'from-purple-500/10 to-indigo-500/5 border-purple-500/30 text-purple-400',
+export default function StatCard({
+  title,
+  value,
+  subtitle,
+  alert = false,
+  statusColor = 'neutral',
+}) {
+  const dotColor = {
+    green: 'bg-[#15803D]',
+    amber: 'bg-[#B45309]',
+    red: 'bg-[#B91C1C]',
+    blue: 'bg-[#0E7490]',
+    neutral: 'bg-[#829AB1]'
   };
 
-  const selectedColor = colorMap[color] || colorMap.amber;
-
   return (
-    <div className={`relative overflow-hidden rounded-xl border bg-gradient-to-br p-5 shadow-lg backdrop-blur-sm transition-all duration-200 hover:scale-[1.01] ${selectedColor} ${alert ? 'ring-2 ring-rose-500/50' : ''}`}>
+    <div className={`p-3 bg-white border border-[#D9E2EC] rounded-[4px] flex flex-col justify-between ${alert ? 'bg-red-50/20 border-red-200' : ''}`}>
       <div className="flex items-center justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">{title}</p>
-          <p className="mt-2 text-3xl font-bold text-white tracking-tight">{value}</p>
-          {subtitle && <p className="mt-1 text-xs text-slate-400">{subtitle}</p>}
-        </div>
-        {Icon && (
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900/60 border border-slate-700/50 shadow-inner">
-            <Icon className="h-6 w-6" />
-          </div>
+        <span className="text-[11px] font-medium uppercase tracking-wider text-[#627D98]">
+          {title}
+        </span>
+        {statusColor !== 'neutral' && (
+          <span className={`w-1.5 h-1.5 rounded-full ${dotColor[statusColor] || dotColor.neutral}`}></span>
         )}
       </div>
+
+      <div className="mt-1.5">
+        <span className="font-mono text-xl lg:text-2xl font-bold tracking-tight text-[#102A43]">
+          {value}
+        </span>
+      </div>
+
+      {subtitle && (
+        <p className="mt-0.5 text-[11px] text-[#627D98] truncate">
+          {subtitle}
+        </p>
+      )}
     </div>
   );
 }

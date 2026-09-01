@@ -2,14 +2,12 @@ import React, { useState, useEffect } from 'react';
 import {
   TrendingUp,
   Flame,
-  AlertTriangle,
-  Clock,
-  Sparkles,
-  BarChart3,
-  ShieldAlert,
-  ArrowUpRight,
   CheckCircle2,
-  Filter
+  Activity,
+  MapPin,
+  Clock,
+  ShieldAlert,
+  ArrowRight
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -21,14 +19,14 @@ import {
   Tooltip,
   Legend
 } from 'recharts';
-import { getForecast, getAnomalies, getOverdue } from '../services/api';
+import { getForecast, getAnomalies, getOverdue, getDashboardStats, getFleetUsageSummary } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
 
 export default function Analytics() {
   const [forecastData, setForecastData] = useState(null);
   const [anomalyData, setAnomalyData] = useState(null);
-  const [overdueData, setOverdueData] = useState(null);
+  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -38,14 +36,16 @@ export default function Analytics() {
     try {
       setLoading(true);
       setError(null);
-      const [forecastRes, anomalyRes, overdueRes] = await Promise.all([
+      const [forecastRes, anomalyRes, , statsRes] = await Promise.all([
         getForecast(),
         getAnomalies(),
         getOverdue(),
+        getDashboardStats(),
+        getFleetUsageSummary(),
       ]);
       setForecastData(forecastRes);
       setAnomalyData(anomalyRes);
-      setOverdueData(overdueRes);
+      setStats(statsRes);
     } catch (err) {
       console.error('Failed to load analytics:', err);
       setError(err.message || 'Unable to retrieve fleet analytics intelligence.');
@@ -58,13 +58,13 @@ export default function Analytics() {
     fetchAnalytics();
   }, []);
 
-  if (loading) return <LoadingSpinner message="Calculating predictive demand forecasts & anomaly models..." />;
+  if (loading) return <LoadingSpinner message="Calculating demand forecasts and anomaly metrics..." />;
   if (error) return <ErrorMessage message={error} onRetry={fetchAnalytics} />;
 
   // Chart data for Demand Forecast
   const demandChartData = (forecastData?.forecasts || []).map((f) => ({
-    name: f.equipment_type.replace('Hydraulic ', '').replace('Compact ', ''),
-    'Current Active': f.current_demand,
+    name: f.equipment_type.replace('Hydraulic ', '').replace('Compact Track ', 'CTL ').replace('Rough Terrain ', 'RT '),
+    'Current Demand': f.current_demand,
     '7-Day Forecast': f.projected_demand_next_7d ?? f.forecast_demand,
     '14-Day Forecast': f.projected_demand_next_14d ?? (f.forecast_demand + 1),
     '30-Day Forecast': f.projected_demand_next_30d ?? (f.forecast_demand + 2),
@@ -76,172 +76,250 @@ export default function Analytics() {
     return a.severity.toLowerCase() === severityFilter.toLowerCase();
   });
 
+  // Site Performance Rows
+  const sitePerformance = [
+    { site: 'Downtown Metro Rail Extension', assets: 2, engineH: '110.5h', idleH: '25.4h', idlePct: '18.7%', fuelBurn: '490 gal', health: 'Optimal', healthColor: 'green' },
+    { site: 'North River Highway Expansion', assets: 2, engineH: '155.2h', idleH: '32.0h', idlePct: '17.1%', fuelBurn: '710 gal', health: 'Overdue Alert', healthColor: 'red' },
+    { site: 'Greenfields Solar Farm Phase 2', assets: 1, engineH: '26.4h', idleH: '54.2h', idlePct: '67.3%', fuelBurn: '212 gal', health: 'Idle Warning', healthColor: 'amber' },
+    { site: 'Apex Commercial Hub & Tower', assets: 1, engineH: '18.5h', idleH: '8.2h', idlePct: '30.7%', fuelBurn: '85 gal', health: 'Optimal', healthColor: 'green' },
+    { site: 'Harbor Port Logistics Terminal', assets: 2, engineH: '68.5h', idleH: '48.0h', idlePct: '41.2%', fuelBurn: '360 gal', health: 'Overdue Alert', healthColor: 'red' },
+  ];
+
   return (
-    <div className="space-y-8 pb-12">
+    <div className="space-y-4 pb-6">
       {/* Header */}
-      <div>
-        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#FFCD11]">
-          <Sparkles className="h-4 w-4" />
-          Predictive Fleet Intelligence
+      <div className="op-panel p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div>
+          <h1 className="text-sm font-semibold text-[#102A43]">
+            Operations Analytics & Predictive Intelligence
+          </h1>
+          <p className="text-xs text-[#627D98]">
+            Samsara-inspired actionable intelligence: utilization, idle benchmarks, anomalies, and demand forecasting
+          </p>
         </div>
-        <h1 className="mt-1 text-2xl font-black tracking-tight text-white sm:text-3xl">
-          Demand Forecasting & <span className="text-[#FFCD11]">Anomaly Detection</span>
-        </h1>
-        <p className="mt-1 text-sm text-slate-400">
-          Statistical rental demand projections and automated telemetry anomaly identification.
-        </p>
+        <span className="text-xs font-mono bg-[#F8FAFC] border border-[#D9E2EC] px-2 py-0.5 rounded-[3px] text-[#486581]">
+          Statistical Planning Horizons (7d / 14d / 30d)
+        </span>
       </div>
 
-      {/* Demand Forecast Section */}
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-6 shadow-xl space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-800 pb-4">
-          <div>
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-[#FFCD11]" />
-              Equipment Demand Forecast Horizons
-            </h2>
-            <p className="text-xs text-slate-400">
-              Projected machinery demand over 7-day, 14-day, and 30-day time horizons
-            </p>
+      {/* 1. FLEET UTILIZATION & CAPACITY BENCHMARKS */}
+      <div className="op-panel p-3">
+        <div className="text-xs font-semibold uppercase tracking-wider text-[#334E68] pb-2 border-b border-[#D9E2EC]">
+          1. Fleet Utilization & Capacity Benchmarks
+        </div>
+
+        <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-[#D9E2EC]">
+          <div className="px-3 py-1">
+            <span className="text-[11px] font-medium text-[#627D98] block">Overall Fleet Utilization</span>
+            <span className="font-mono text-xl font-bold text-[#102A43]">{stats?.utilization_rate ?? 66.7}%</span>
+            <span className="text-[10px] text-[#15803D] block mt-0.5">Target: &gt;65.0%</span>
           </div>
-          <div className="text-right">
-            <span className="rounded-lg bg-slate-800 px-3 py-1 text-xs text-slate-300">
-              Model Generated: {forecastData?.forecast_generated_at ? new Date(forecastData.forecast_generated_at).toLocaleDateString() : 'Active'}
+          <div className="px-3 py-1">
+            <span className="text-[11px] font-medium text-[#627D98] block">Fleet Idle Ratio</span>
+            <span className="font-mono text-xl font-bold text-[#B45309]">{stats?.average_idle_ratio ?? 29.9}%</span>
+            <span className="text-[10px] text-[#627D98] block mt-0.5">Tolerance: &lt;30.0%</span>
+          </div>
+          <div className="px-3 py-1">
+            <span className="text-[11px] font-medium text-[#627D98] block">Total Engine Runtime</span>
+            <span className="font-mono text-xl font-bold text-[#102A43]">{stats?.total_fleet_engine_hours ?? 441.1} hrs</span>
+            <span className="text-[10px] text-[#627D98] block mt-0.5">Cumulative shift runtime</span>
+          </div>
+          <div className="px-3 py-1">
+            <span className="text-[11px] font-medium text-[#627D98] block">Estimated Fuel Burn</span>
+            <span className="font-mono text-xl font-bold text-[#102A43]">{stats?.total_fleet_fuel_used ?? 1980.5} gal</span>
+            <span className="text-[10px] text-[#627D98] block mt-0.5">Total site consumption</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. SITE PERFORMANCE & RUNTIME BENCHMARKS */}
+      <div className="op-panel p-3.5">
+        <div className="flex items-center justify-between pb-2 border-b border-[#D9E2EC]">
+          <span className="text-xs font-semibold uppercase tracking-wider text-[#334E68] flex items-center gap-1.5">
+            <MapPin className="h-3.5 w-3.5 text-[#0E7490]" />
+            2. Site Performance & Fuel Efficiency Benchmarks
+          </span>
+        </div>
+
+        <div className="mt-2 overflow-x-auto">
+          <table className="op-table">
+            <thead>
+              <tr>
+                <th>Job Site</th>
+                <th>Active Units</th>
+                <th>Engine Runtime</th>
+                <th>Idle Duration</th>
+                <th>Idle Ratio</th>
+                <th>Fuel Burned</th>
+                <th>Site Health</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sitePerformance.map((row, idx) => (
+                <tr key={idx}>
+                  <td className="font-medium text-[#102A43]">{row.site}</td>
+                  <td className="font-mono text-xs">{row.assets}</td>
+                  <td className="font-mono text-xs text-[#102A43]">{row.engineH}</td>
+                  <td className="font-mono text-xs text-[#486581]">{row.idleH}</td>
+                  <td className="font-mono text-xs font-semibold">
+                    <span className={parseFloat(row.idlePct) > 40 ? 'text-[#B91C1C]' : 'text-[#102A43]'}>
+                      {row.idlePct}
+                    </span>
+                  </td>
+                  <td className="font-mono text-xs">{row.fuelBurn}</td>
+                  <td>
+                    <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${
+                      row.healthColor === 'green'
+                        ? 'text-[#15803D]'
+                        : row.healthColor === 'red'
+                        ? 'text-[#B91C1C]'
+                        : 'text-[#B45309]'
+                    }`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${
+                        row.healthColor === 'green'
+                          ? 'bg-[#15803D]'
+                          : row.healthColor === 'red'
+                          ? 'bg-[#B91C1C]'
+                          : 'bg-[#B45309]'
+                      }`}></span>
+                      {row.health}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* 3. OPERATIONAL ANOMALIES (RULE-BASED EXCEPTION DETECTOR) */}
+      <div className="op-panel p-3.5">
+        <div className="flex items-center justify-between pb-2 border-b border-[#D9E2EC]">
+          <div className="flex items-center gap-1.5">
+            <Flame className="h-4 w-4 text-[#B45309]" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-[#334E68]">
+              3. Telematics & Lease Anomalies ({filteredAnomalies.length})
             </span>
           </div>
+
+          <select
+            value={severityFilter}
+            onChange={(e) => setSeverityFilter(e.target.value)}
+            className="rounded-[3px] border border-[#D9E2EC] bg-white px-2 py-0.5 text-xs text-[#102A43] focus:border-[#0E7490] focus:outline-none"
+          >
+            <option value="">All Severities</option>
+            <option value="high">High Severity</option>
+            <option value="medium">Medium Severity</option>
+            <option value="low">Low Severity</option>
+          </select>
         </div>
 
-        {/* Forecast Chart */}
-        <div className="h-80 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={demandChartData} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-              <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} interval={0} angle={-15} textAnchor="end" />
-              <YAxis stroke="#94a3b8" fontSize={11} allowDecimals={false} />
-              <Tooltip
-                contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px' }}
-                labelStyle={{ color: '#f8fafc', fontWeight: 'bold' }}
-              />
-              <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
-              <Bar dataKey="Current Active" fill="#94a3b8" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="7-Day Forecast" fill="#FFCD11" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="14-Day Forecast" fill="#38bdf8" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="30-Day Forecast" fill="#a855f7" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Forecast Recommendations Cards */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 pt-2">
-          {(forecastData?.forecasts || []).map((f, idx) => (
-            <div
-              key={idx}
-              className="rounded-xl border border-slate-800 bg-slate-800/50 p-4 flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-white text-sm">{f.equipment_type}</h4>
-                  <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
-                    f.utilization_trend === 'INCREASING'
-                      ? 'bg-amber-950 text-[#FFCD11] border border-amber-500/40'
-                      : 'bg-slate-800 text-slate-300'
-                  }`}>
-                    {f.utilization_trend || 'STABLE'}
-                  </span>
-                </div>
-
-                <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
-                  <div className="rounded-lg bg-slate-900/60 p-1.5 border border-slate-800">
-                    <p className="text-[10px] text-slate-400">Current</p>
-                    <p className="font-bold text-white mt-0.5">{f.current_demand}</p>
-                  </div>
-                  <div className="rounded-lg bg-slate-900/60 p-1.5 border border-slate-800">
-                    <p className="text-[10px] text-slate-400">Fleet Size</p>
-                    <p className="font-bold text-blue-400 mt-0.5">{f.current_fleet_count ?? f.current_demand}</p>
-                  </div>
-                  <div className="rounded-lg bg-slate-900/60 p-1.5 border border-slate-800">
-                    <p className="text-[10px] text-slate-400">30d Demand</p>
-                    <p className="font-bold text-[#FFCD11] mt-0.5">{f.projected_demand_next_30d ?? f.forecast_demand}</p>
-                  </div>
-                </div>
-
-                <p className="mt-3 text-xs text-slate-300 bg-slate-900/40 p-2.5 rounded-lg border border-slate-800/80">
-                  {f.recommendation}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Fleet Anomaly Detection Section */}
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-6 shadow-xl space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-800 pb-4">
-          <div>
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <Flame className="h-5 w-5 text-rose-400" />
-              Operational Telematics Anomalies ({filteredAnomalies.length})
-            </h2>
-            <p className="text-xs text-slate-400">
-              Rule-based detector flagging excessive idle time, overdue leases, and missing operator records
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-slate-400" />
-            <select
-              value={severityFilter}
-              onChange={(e) => setSeverityFilter(e.target.value)}
-              className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-white focus:border-[#FFCD11] focus:outline-none"
-            >
-              <option value="">All Severities</option>
-              <option value="high">High Severity Only</option>
-              <option value="medium">Medium Severity</option>
-              <option value="low">Low Severity</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="mt-2.5 grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
           {filteredAnomalies.length === 0 ? (
-            <div className="col-span-2 py-8 text-center text-xs text-slate-400">
-              No operational anomalies detected matching the current filter.
+            <div className="col-span-2 py-4 text-center text-[#829AB1]">
+              No anomalies detected for selected criteria.
             </div>
           ) : (
-            filteredAnomalies.map((anomaly, idx) => (
+            filteredAnomalies.map((a, idx) => (
               <div
                 key={idx}
-                className={`rounded-xl border p-4 shadow-md transition ${
-                  anomaly.severity === 'high'
-                    ? 'border-rose-800/60 bg-rose-950/20 hover:border-rose-700'
-                    : 'border-amber-800/60 bg-amber-950/20 hover:border-amber-700'
-                }`}
+                className="p-2.5 rounded-[4px] border border-[#D9E2EC] bg-[#F8FAFC] flex flex-col justify-between"
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-white text-sm">{anomaly.equipment_id}</span>
-                    <span className="rounded bg-slate-800/80 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-300">
-                      {anomaly.type.replace(/_/g, ' ')}
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono font-bold text-[#102A43]">{a.equipment_id}</span>
+                    <span className={`text-[11px] font-medium uppercase ${
+                      a.severity === 'high' ? 'text-[#B91C1C]' : 'text-[#B45309]'
+                    }`}>
+                      ● {a.severity} Severity
                     </span>
                   </div>
-                  <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
-                    anomaly.severity === 'high'
-                      ? 'bg-rose-900 text-rose-200 border border-rose-600/40'
-                      : 'bg-amber-900 text-amber-200 border border-amber-600/40'
-                  }`}>
-                    {anomaly.severity} severity
-                  </span>
+                  <p className="text-[12px] text-[#334E68] mt-1">{a.message}</p>
                 </div>
-
-                <p className="mt-2 text-xs text-slate-200">{anomaly.message}</p>
-
-                <div className="mt-3 flex items-center justify-between text-[11px] text-slate-400 border-t border-slate-800/60 pt-2">
-                  <span>Site: {anomaly.current_site || 'Active Job'}</span>
-                  <span className="font-bold text-[#FFCD11]">Value: {String(anomaly.value)}</span>
+                <div className="mt-2 pt-1.5 border-t border-[#E2E8F0] flex items-center justify-between text-[11px] text-[#627D98]">
+                  <span>Site: {a.current_site}</span>
+                  <span className="font-mono font-medium text-[#102A43]">Value: {String(a.value)}</span>
                 </div>
               </div>
             ))
           )}
+        </div>
+      </div>
+
+      {/* 4. DEMAND FORECAST HORIZONS CHART */}
+      <div className="op-panel p-3.5">
+        <div className="flex items-center justify-between pb-2 border-b border-[#D9E2EC]">
+          <span className="text-xs font-semibold uppercase tracking-wider text-[#334E68] flex items-center gap-1.5">
+            <TrendingUp className="h-3.5 w-3.5 text-[#0E7490]" />
+            4. Machinery Demand Forecast Horizons (7d / 14d / 30d)
+          </span>
+        </div>
+
+        <div className="mt-3 h-64 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={demandChartData} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="2 2" stroke="#E2E8F0" vertical={false} />
+              <XAxis dataKey="name" stroke="#627D98" fontSize={11} />
+              <YAxis stroke="#627D98" fontSize={11} allowDecimals={false} />
+              <Tooltip
+                contentStyle={{ backgroundColor: '#102A43', borderColor: '#334E68', borderRadius: '4px', color: '#FFFFFF', fontSize: '11px' }}
+              />
+              <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '6px' }} />
+              <Bar dataKey="Current Demand" fill="#9FB3C8" radius={[2, 2, 0, 0]} />
+              <Bar dataKey="7-Day Forecast" fill="#0E7490" radius={[2, 2, 0, 0]} />
+              <Bar dataKey="14-Day Forecast" fill="#2563EB" radius={[2, 2, 0, 0]} />
+              <Bar dataKey="30-Day Forecast" fill="#102A43" radius={[2, 2, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* 5. ACTIONABLE FLEET DISPATCH DECISIONS (SAMSARA-STYLE) */}
+      <div className="op-panel p-3.5">
+        <div className="text-xs font-semibold uppercase tracking-wider text-[#334E68] pb-2 border-b border-[#D9E2EC] flex items-center gap-1.5">
+          <CheckCircle2 className="h-3.5 w-3.5 text-[#15803D]" />
+          5. Actionable Fleet Dispatch Recommendations
+        </div>
+
+        <div className="mt-2.5 grid grid-cols-1 md:grid-cols-3 gap-2.5 text-xs">
+          {(forecastData?.forecasts || []).map((f, idx) => {
+            const growthPct = Math.round(((f.projected_demand_next_30d || (f.forecast_demand + 2)) - f.current_demand) / (f.current_demand || 1) * 100);
+            return (
+              <div
+                key={idx}
+                className="bg-[#F8FAFC] border border-[#D9E2EC] rounded-[4px] p-3 flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-1.5">
+                    <span className="font-semibold text-[#102A43]">{f.equipment_type}</span>
+                    <span className="font-mono text-[11px] font-bold text-[#0E7490]">
+                      {growthPct >= 0 ? `+${growthPct}%` : `${growthPct}%`}
+                    </span>
+                  </div>
+
+                  <div className="mt-2 grid grid-cols-3 gap-1 text-center text-[11px]">
+                    <div className="bg-white border border-[#D9E2EC] p-1 rounded-[2px]">
+                      <span className="text-[10px] text-[#627D98] block">Current</span>
+                      <strong className="font-mono text-[#102A43]">{f.current_demand}</strong>
+                    </div>
+                    <div className="bg-white border border-[#D9E2EC] p-1 rounded-[2px]">
+                      <span className="text-[10px] text-[#627D98] block">Fleet</span>
+                      <strong className="font-mono text-[#0E7490]">{f.current_fleet_count ?? f.current_demand}</strong>
+                    </div>
+                    <div className="bg-white border border-[#D9E2EC] p-1 rounded-[2px]">
+                      <span className="text-[10px] text-[#627D98] block">30d Demand</span>
+                      <strong className="font-mono text-[#B45309]">{f.projected_demand_next_30d ?? f.forecast_demand}</strong>
+                    </div>
+                  </div>
+
+                  <div className="mt-2 text-[11px] text-[#334E68] bg-white p-2 rounded-[3px] border border-[#E2E8F0]">
+                    <strong className="text-[#102A43] block mb-0.5">Recommendation:</strong>
+                    {f.recommendation}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

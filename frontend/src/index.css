@@ -1,34 +1,86 @@
 @import "tailwindcss";
 
 :root {
-  --primary-cat: #FFCD11;
-  --primary-cat-hover: #E5B700;
-  --dark-slate: #0F172A;
-  --card-dark: #1E293B;
-  --border-dark: #334155;
+  --color-deep-navy: #102A43;
+  --color-dark-navy: #0B1F33;
+  --color-slate: #334E68;
+  --color-muted-slate: #627D98;
+  --color-bg: #F4F7F9;
+  --color-border: #D9E2EC;
+  --color-teal: #0E7490;
+  --color-cyan: #0891B2;
+  --color-success: #15803D;
+  --color-warning: #B45309;
+  --color-danger: #B91C1C;
+  --color-info: #2563EB;
 }
 
 body {
   margin: 0;
-  background-color: #0B0F17;
-  color: #F8FAFC;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background-color: #F4F7F9;
+  color: #102A43;
+  font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
 }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #0F172A;
-}
-::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+/* Monospace font strictly for equipment IDs, telemetry metrics, timestamps, and codes */
+.font-mono {
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
+/* Custom Scrollbar for dense fleet tables and telemetry logs */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: #E2E8F0;
+}
+::-webkit-scrollbar-thumb {
+  background: #9FB3C8;
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #627D98;
+}
+
+/* Samsara-style operational container panel */
+.op-panel {
+  background-color: #FFFFFF;
+  border: 1px solid #D9E2EC;
+  border-radius: 4px;
+}
+
+/* High-density operational table */
+.op-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.op-table th {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #627D98;
+  background-color: #F8FAFC;
+  border-bottom: 1px solid #D9E2EC;
+  padding: 8px 12px;
+}
+
+.op-table td {
+  font-size: 13px;
+  padding: 9px 12px;
+  border-bottom: 1px solid #F0F4F8;
+  color: #102A43;
+}
+
+.op-table tbody tr:hover {
+  background-color: #F8FAFC;
+}
