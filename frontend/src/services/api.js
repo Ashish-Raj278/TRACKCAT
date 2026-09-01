@@ -402,6 +402,74 @@ export async function getFleetUsageSummary() {
   };
 }
 
+/**
+ * GET /api/analytics/recommendations
+ * Explainable AI-powered recommendations connecting anomalies, forecasting, and telematics
+ */
+export async function getRecommendations() {
+  const data = await request('/analytics/recommendations');
+  if (data !== null) return data;
+  return {
+    total_recommendations: 3,
+    critical_count: 1,
+    high_count: 2,
+    recommendations: [
+      {
+        id: 'rec-ret-eq-cat-336',
+        recommendation_type: 'RETURN',
+        priority: 'critical',
+        equipment_id: 'EQ-CAT-336',
+        equipment_type: 'Hydraulic Excavator',
+        source_site: 'North River Highway Expansion',
+        target_site: 'Central Yard Depot',
+        reason: 'Asset EQ-CAT-336 is overdue on return schedule by 4.3 days, causing fleet availability blindspots.',
+        supporting_metrics: {
+          days_overdue: 4.3,
+          equipment_type: 'Hydraulic Excavator',
+          current_site: 'North River Highway Expansion'
+        },
+        recommended_action: 'Initiate field return check-in or execute lease extension for EQ-CAT-336.',
+        impact: 'Restores fleet capacity for upcoming bookings; mitigates unbilled utilization loss.'
+      },
+      {
+        id: 'rec-realloc-eq-cat-950',
+        recommendation_type: 'REALLOCATE',
+        priority: 'high',
+        equipment_id: 'EQ-CAT-950',
+        equipment_type: 'Wheel Loader',
+        source_site: 'Apex Commercial Hub & Tower',
+        target_site: 'Downtown Metro Rail Extension',
+        reason: 'Asset EQ-CAT-950 is underutilized at Apex Commercial Hub (1.1 hrs/day), while regional Wheel Loader demand is projected at 2 units.',
+        supporting_metrics: {
+          engine_hours_per_day: 1.1,
+          target_site_projected_demand: 2,
+          equipment_type: 'Wheel Loader',
+          utilization_trend: 'INCREASING'
+        },
+        recommended_action: 'Reallocate EQ-CAT-950 from Apex Commercial Hub to Downtown Metro Rail Extension to fulfill upcoming project demand.',
+        impact: 'Increases asset utilization from ~20% to >75%; prevents third-party cross-rental costs.'
+      },
+      {
+        id: 'rec-idle-eq-cat-d6',
+        recommendation_type: 'INVESTIGATE_IDLE',
+        priority: 'high',
+        equipment_id: 'EQ-CAT-D6',
+        equipment_type: 'Track Bulldozer',
+        source_site: 'Greenfields Solar Farm Phase 2',
+        target_site: null,
+        reason: 'Excessive idle ratio (68.0%, 6.6h/day) recorded at Greenfields Solar Farm Phase 2. Significant fuel waste and unbilled engine depreciation.',
+        supporting_metrics: {
+          idle_ratio_pct: 68.0,
+          idle_hours_per_day: 6.6,
+          current_site: 'Greenfields Solar Farm Phase 2'
+        },
+        recommended_action: 'Audit operator shift logs with site foreman for EQ-CAT-D6 and activate auto-shutdown timer (5-min cutoff).',
+        impact: 'Estimated savings of 12-18 gallons of diesel per week; extends engine service interval.'
+      }
+    ]
+  };
+}
+
 // Auxiliary helpers
 export async function getSites() {
   return mockSites;
@@ -410,4 +478,3 @@ export async function getSites() {
 export async function getOperators() {
   return mockOperators;
 }
-

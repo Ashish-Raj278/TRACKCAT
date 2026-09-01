@@ -20,8 +20,9 @@
 | **Usage / Telematics** | `GET` | `/api/usage/{asset_id}` | Get telemetry logs and aggregated usage metrics (runtime, idle, fuel) |
 | **Usage / Telematics** | `POST` | `/api/usage` | Record a daily telemetry log (engine hours, idle hours, fuel, location) |
 | **Dashboard** | `GET` | `/api/dashboard/stats` | High-level fleet KPIs (utilization %, idle ratio %, total fuel, downtime) |
-| **Analytics** | `GET` | `/api/analytics/anomalies` | Detected anomalies (`HIGH_IDLE_TIME`, `LOW_UTILIZATION`, `UNUSUALLY_LONG_RENTAL`, `MISSING_OPERATOR`) |
-| **Analytics** | `GET` | `/api/analytics/forecast` | Demand forecast by equipment type (`current_demand`, `forecast_demand`, `recommendation`) |
+| **Analytics** | `GET` | `/api/analytics/anomalies` | Detected anomalies (`HIGH_IDLE_TIME`, `LOW_UTILIZATION`, `UNUSUALLY_LONG_RENTAL`, `MISSING_OPERATOR`, `OVERDUE_RENTAL`, `EXCESSIVE_DAILY_HOURS`) |
+| **Analytics** | `GET` | `/api/analytics/forecast` | Demand forecast by equipment type (`historical_demand`, `forecast_demand`, `trend`, `recommendation_basis`) |
+| **Analytics** | `GET` | `/api/analytics/recommendations` | Explainable AI-powered recommendations connecting anomalies, forecasts, and telematics |
 | **Analytics** | `GET` | `/api/analytics/overdue` | List of overdue rentals (`equipment_id`, `type`, `site`, `expected_return_date`, `overdue_days`) |
 | **Analytics** | `GET` | `/api/analytics/alerts` | Combined overdue and due-soon approaching return alerts (<48h) |
 | **Analytics** | `GET` | `/api/analytics/usage-summary` | Aggregated fleet runtime, idle, fuel, downtime & site breakdown |
@@ -338,12 +339,13 @@ Retrieve high-level KPIs for the rental intelligence dashboard overview.
 ---
 
 ### `GET /api/analytics/anomalies`
-Detect operational telematics anomalies across the fleet:
-- `HIGH_IDLE_TIME`: Idle ratio $\ge 40\%$
+Detect operational telematics anomalies across the fleet using explainable deterministic benchmarks:
+- `HIGH_IDLE_TIME`: Idle ratio $\ge 40\%$ or idle hours $\ge 4.0$ hrs/day
 - `LOW_UTILIZATION`: Rented equipment with $<2.0$ hrs/day runtime
 - `UNUSUALLY_LONG_RENTAL`: Active rental $>14$ days
 - `MISSING_OPERATOR`: Rented equipment with no operator assigned
 - `OVERDUE_RENTAL`: Past expected return date
+- `EXCESSIVE_DAILY_HOURS`: Engine hours $\ge 12.0$ hrs/day
 
 **Sample Response (`200 OK`):**
 ```json
@@ -351,49 +353,53 @@ Detect operational telematics anomalies across the fleet:
   "total_anomalies": 6,
   "anomalies": [
     {
-      "equipment_id": "EQ-CAT-RT100",
-      "type": "MISSING_OPERATOR",
-      "severity": "high",
-      "value": "None",
-      "message": "Equipment EQ-CAT-RT100 is active at site 'Harbor Port Logistics Terminal' but has no designated operator on record.",
-      "asset_id": 12,
-      "current_site": "Harbor Port Logistics Terminal"
-    },
-    {
       "equipment_id": "EQ-CAT-336",
       "type": "OVERDUE_RENTAL",
       "severity": "high",
-      "value": "4.0 days overdue",
-      "message": "Equipment is overdue by 4.0 days (96.0 hrs) at North River Highway Expansion.",
+      "value": "4.3 days overdue",
+      "threshold": "0.0 days overdue (on-schedule return)",
+      "message": "Equipment is overdue by 4.3 days (102.9 hrs) at North River Highway Expansion.",
+      "recommended_action": "Initiate immediate field check-in or extend lease contract to restore fleet availability.",
       "asset_id": 2,
-      "current_site": "North River Highway Expansion"
-    },
-    {
-      "equipment_id": "EQ-CAT-336",
-      "type": "UNUSUALLY_LONG_RENTAL",
-      "severity": "high",
-      "value": "22.0 days",
-      "message": "Rental duration has reached 22.0 days at North River Highway Expansion. Standard rental review recommended.",
-      "asset_id": 2,
-      "current_site": "North River Highway Expansion"
+      "equipment_type": "Hydraulic Excavator",
+      "current_site": "North River Highway Expansion",
+      "metrics": {
+        "days_overdue": 4.3,
+        "hours_overdue": 102.9
+      }
     },
     {
       "equipment_id": "EQ-CAT-D6",
       "type": "HIGH_IDLE_TIME",
       "severity": "high",
-      "value": "66.7%",
-      "message": "High idle ratio of 66.7% (6.6h idle vs 3.3h engine). Fuel burn efficiency alert.",
+      "value": "68.0% idle (6.6h/day)",
+      "threshold": "<30.0% idle ratio (max 3.5h/day)",
+      "message": "High idle ratio of 68.0% (6.6h idle vs 3.2h engine). Excessive fuel consumption and unnecessary hour accumulation.",
+      "recommended_action": "Review operator idle cutoff rules with field foreman or adjust machine auto-shutdown timer.",
       "asset_id": 3,
-      "current_site": "Greenfields Solar Farm Phase 2"
+      "equipment_type": "Track Bulldozer",
+      "current_site": "Greenfields Solar Farm Phase 2",
+      "metrics": {
+        "engine_hours_per_day": 3.2,
+        "idle_hours_per_day": 6.6,
+        "idle_ratio_pct": 68.0
+      }
     },
     {
       "equipment_id": "EQ-CAT-950",
       "type": "LOW_UTILIZATION",
       "severity": "medium",
-      "value": "1.2 hrs/day",
-      "message": "Low utilization rate: only 1.2 hrs/day engine runtime across 7 operating days.",
+      "value": "1.1 hrs/day",
+      "threshold": ">=4.0 hrs/day active runtime benchmark",
+      "message": "Low utilization rate: only 1.1 hrs/day engine runtime across 7 operating days.",
+      "recommended_action": "Consider reallocating this underutilized unit to a higher-demand site or returning to depot pool.",
       "asset_id": 5,
-      "current_site": "Apex Commercial Hub & Tower"
+      "equipment_type": "Wheel Loader",
+      "current_site": "Apex Commercial Hub & Tower",
+      "metrics": {
+        "engine_hours_per_day": 1.1,
+        "operating_days": 7
+      }
     }
   ]
 }
@@ -402,34 +408,103 @@ Detect operational telematics anomalies across the fleet:
 ---
 
 ### `GET /api/analytics/forecast`
-Statistical rental demand projections by equipment category based on historical rental transactions.
+Statistical rental demand projections across 7-day, 14-day, and 30-day horizons based on historical rental transactions, recent checkout velocity, and fleet size.
 
 **Sample Response (`200 OK`):**
 ```json
 {
-  "forecast_generated_at": "2026-09-01T13:00:00",
+  "forecast_generated_at": "2026-09-01T23:30:00",
   "forecasts": [
     {
       "equipment_type": "Hydraulic Excavator",
+      "site": "Downtown Metro Rail Extension",
+      "historical_demand": 8,
       "current_demand": 2,
       "forecast_demand": 3,
-      "recommendation": "High demand deficit. Forecast of 3 units exceeds fleet of 2. Recommend acquiring or cross-leasing 1 additional unit(s).",
+      "trend": "increasing",
+      "forecast_period": "14d",
+      "recommendation_basis": "Recent rental frequency (2 checkouts in last 14d vs 0 prior) is increasing compared with historical average.",
+      "recommendation": "High demand deficit. Forecast of 3 units exceeds fleet of 2. Recommend pre-positioning or cross-leasing 1 additional unit(s).",
       "current_fleet_count": 2,
-      "projected_demand_next_7d": 3,
+      "projected_demand_next_7d": 2,
       "projected_demand_next_14d": 3,
-      "projected_demand_next_30d": 6,
+      "projected_demand_next_30d": 5,
       "utilization_trend": "INCREASING"
+    }
+  ]
+}
+```
+
+---
+
+### `GET /api/analytics/recommendations`
+Synthesized AI-powered fleet recommendations connecting operational anomalies, demand forecasting, and real-time equipment telematics into actionable fleet management decisions.
+
+**Recommendation Types:**
+- `RETURN`: Trigger return check-in or contract renewal for overdue assets.
+- `INVESTIGATE_IDLE`: Audit operator idle cutoff rules and activate auto-shutdown timer on high-idle machines.
+- `REALLOCATE`: Move underutilized machines to sites experiencing high projected demand.
+- `REASSIGN`: Attach certified operators to active machines with missing operator records.
+- `PRE_POSITION`: Stage extra units from depot pool or cross-lease partners before demand deficit occurs.
+
+**Sample Response (`200 OK`):**
+```json
+{
+  "total_recommendations": 6,
+  "critical_count": 2,
+  "high_count": 4,
+  "recommendations": [
+    {
+      "id": "rec-ret-eq-cat-336",
+      "recommendation_type": "RETURN",
+      "priority": "critical",
+      "equipment_id": "EQ-CAT-336",
+      "equipment_type": "Hydraulic Excavator",
+      "source_site": "North River Highway Expansion",
+      "target_site": "Central Yard Depot",
+      "reason": "Asset EQ-CAT-336 is overdue on return schedule by 4.3 days, causing fleet availability blindspots.",
+      "supporting_metrics": {
+        "days_overdue": 4.3,
+        "equipment_type": "Hydraulic Excavator",
+        "current_site": "North River Highway Expansion"
+      },
+      "recommended_action": "Initiate field return check-in or execute lease extension for EQ-CAT-336.",
+      "impact": "Restores fleet capacity for upcoming bookings; mitigates unbilled utilization loss."
     },
     {
+      "id": "rec-realloc-eq-cat-950",
+      "recommendation_type": "REALLOCATE",
+      "priority": "high",
+      "equipment_id": "EQ-CAT-950",
+      "equipment_type": "Wheel Loader",
+      "source_site": "Apex Commercial Hub & Tower",
+      "target_site": "Downtown Metro Rail Extension",
+      "reason": "Asset EQ-CAT-950 is underutilized at 'Apex Commercial Hub & Tower' (1.1 hrs/day), while regional 14-day Wheel Loader demand is projected at 2 units.",
+      "supporting_metrics": {
+        "engine_hours_per_day": 1.1,
+        "target_site_projected_demand": 2,
+        "equipment_type": "Wheel Loader",
+        "utilization_trend": "INCREASING"
+      },
+      "recommended_action": "Reallocate EQ-CAT-950 from Apex Commercial Hub & Tower to Downtown Metro Rail Extension to fulfill upcoming project demand.",
+      "impact": "Increases asset utilization from ~20% to >75%; prevents third-party cross-rental costs."
+    },
+    {
+      "id": "rec-idle-eq-cat-d6",
+      "recommendation_type": "INVESTIGATE_IDLE",
+      "priority": "high",
+      "equipment_id": "EQ-CAT-D6",
       "equipment_type": "Track Bulldozer",
-      "current_demand": 1,
-      "forecast_demand": 2,
-      "recommendation": "Optimal supply-demand balance. Maintain standard preventive maintenance rotation.",
-      "current_fleet_count": 2,
-      "projected_demand_next_7d": 1,
-      "projected_demand_next_14d": 2,
-      "projected_demand_next_30d": 4,
-      "utilization_trend": "STABLE"
+      "source_site": "Greenfields Solar Farm Phase 2",
+      "target_site": null,
+      "reason": "Excessive idle ratio (68.0%, 6.6h/day) recorded at Greenfields Solar Farm Phase 2. Significant fuel waste and unbilled engine depreciation.",
+      "supporting_metrics": {
+        "idle_ratio_pct": 68.0,
+        "idle_hours_per_day": 6.6,
+        "current_site": "Greenfields Solar Farm Phase 2"
+      },
+      "recommended_action": "Audit operator shift logs with site foreman for EQ-CAT-D6 and activate auto-shutdown timer (5-min cutoff).",
+      "impact": "Estimated savings of 12-18 gallons of diesel per week; extends engine service interval."
     }
   ]
 }

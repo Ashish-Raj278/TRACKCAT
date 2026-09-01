@@ -10,9 +10,11 @@ import {
   Clock,
   CheckCircle2,
   Layers,
-  ChevronRight
+  ChevronRight,
+  Zap,
+  Sparkles
 } from 'lucide-react';
-import { getDashboardStats, getAnomalies, getAlerts, getAssets } from '../services/api';
+import { getDashboardStats, getAnomalies, getAlerts, getAssets, getRecommendations } from '../services/api';
 import StatusBadge from '../components/StatusBadge';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
@@ -24,6 +26,7 @@ export default function Dashboard() {
   const [alerts, setAlerts] = useState({ overdue_items: [], due_soon_items: [] });
   const [allAssets, setAllAssets] = useState([]);
   const [anomalies, setAnomalies] = useState([]);
+  const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedSiteFilter, setSelectedSiteFilter] = useState('ALL');
@@ -37,17 +40,19 @@ export default function Dashboard() {
     try {
       setLoading(true);
       setError(null);
-      const [statsData, anomaliesData, alertsData, assetsData] = await Promise.all([
+      const [statsData, anomaliesData, alertsData, assetsData, recsData] = await Promise.all([
         getDashboardStats(),
         getAnomalies(),
         getAlerts(),
         getAssets(),
+        getRecommendations(),
       ]);
 
       setStats(statsData);
       setAnomalies(anomaliesData?.anomalies || []);
       setAlerts(alertsData || { total_alerts: 0, critical_count: 0, warning_count: 0, alerts: [], overdue_items: [], due_soon_items: [] });
       setAllAssets(assetsData || []);
+      setRecommendations(recsData?.recommendations || []);
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
       setError(err.message || 'Failed to connect to backend dashboard service.');
@@ -271,7 +276,91 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* 3. ATTENTION REQUIRED (EXCEPTION-FIRST SAMSARA DESIGN) */}
+      {/* 3. AI-POWERED RECOMMENDED ACTIONS */}
+      {recommendations.length > 0 && (
+        <div className="op-panel p-3.5 border-l-4 border-l-[#0E7490]">
+          <div className="flex items-center justify-between pb-2 border-b border-[#D9E2EC]">
+            <div className="flex items-center gap-1.5">
+              <Zap className="h-4 w-4 text-[#0E7490]" />
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#102A43]">
+                AI Recommended Fleet Actions ({recommendations.slice(0, 3).length} Priority Items)
+              </span>
+            </div>
+            <Link to="/analytics" className="text-xs text-[#0E7490] hover:underline font-medium flex items-center gap-0.5">
+              All AI Recommendations ({recommendations.length}) <ChevronRight className="h-3 w-3" />
+            </Link>
+          </div>
+
+          <div className="mt-2.5 grid grid-cols-1 md:grid-cols-3 gap-2.5 text-xs">
+            {recommendations.slice(0, 3).map((rec) => {
+              const matchedAsset = allAssets.find(a => a.equipment_id === rec.equipment_id);
+              return (
+                <div
+                  key={rec.id}
+                  className={`p-2.5 rounded-[4px] border flex flex-col justify-between ${
+                    rec.priority === 'critical'
+                      ? 'border-red-200 bg-red-50/20'
+                      : 'border-amber-200 bg-amber-50/15'
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-[2px] font-mono ${
+                        rec.priority === 'critical' ? 'bg-red-100 text-[#B91C1C]' : 'bg-amber-100 text-[#B45309]'
+                      }`}>
+                        {rec.priority.toUpperCase()} • {rec.recommendation_type.replace(/_/g, ' ')}
+                      </span>
+                      <span className="font-mono text-xs font-bold text-[#102A43]">
+                        {rec.equipment_id || rec.equipment_type}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-[#334E68] mt-1.5 line-clamp-2 leading-relaxed">
+                      {rec.reason}
+                    </p>
+                    <div className="text-[11px] text-[#102A43] mt-1.5 bg-white p-1.5 rounded-[2px] border border-[#D9E2EC]">
+                      <strong className="block text-[10px] text-[#0E7490] uppercase tracking-wider">Action:</strong>
+                      {rec.recommended_action}
+                    </div>
+                  </div>
+
+                  <div className="mt-2 pt-1.5 border-t border-[#E2E8F0] flex items-center justify-between">
+                    <span className="text-[10px] text-[#829AB1] truncate max-w-[120px]">
+                      {rec.source_site || 'Fleet Action'}
+                    </span>
+                    {matchedAsset && matchedAsset.status === 'rented' ? (
+                      <button
+                        onClick={() => {
+                          setSelectedAsset(matchedAsset);
+                          setCheckinModalOpen(true);
+                        }}
+                        className="px-2 py-0.5 rounded-[2px] bg-[#102A43] text-white text-[11px] font-medium hover:bg-[#0B1F33] transition"
+                      >
+                        Check In
+                      </button>
+                    ) : matchedAsset ? (
+                      <Link
+                        to={`/assets/${matchedAsset.id}`}
+                        className="px-2 py-0.5 rounded-[2px] border border-[#D9E2EC] bg-white text-[#334E68] text-[11px] font-medium hover:bg-[#F0F4F8] transition"
+                      >
+                        Inspect
+                      </Link>
+                    ) : (
+                      <Link
+                        to="/analytics"
+                        className="text-[11px] text-[#0E7490] hover:underline"
+                      >
+                        View
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* 4. ATTENTION REQUIRED (EXCEPTION-FIRST SAMSARA DESIGN) */}
       <div className="op-panel p-3.5 border-l-4 border-l-[#B91C1C]">
         <div className="flex items-center justify-between pb-2 border-b border-[#D9E2EC]">
           <div className="flex items-center gap-1.5">

@@ -158,6 +158,19 @@ def run_audit_suite():
            res.status_code == 200 and "total_fuel_used_gallons" in data and len(data.get("site_breakdown", [])) > 0,
            f"Fuel Used: {data.get('total_fuel_used_gallons')} gal, Sites: {len(data.get('site_breakdown', []))}, Downtime: {data.get('fleet_downtime_hours')}h")
 
+    # 15. GET /api/analytics/recommendations
+    res = client.get("/api/analytics/recommendations")
+    data = res.json()
+    recs = data.get("recommendations", [])
+    rec_types = {r["recommendation_type"] for r in recs}
+    has_rec_fields = all(
+        "id" in r and "recommendation_type" in r and "priority" in r and "reason" in r and "recommended_action" in r
+        for r in recs
+    )
+    record("AI-Powered Recommendations", "GET /api/analytics/recommendations", res.status_code,
+           res.status_code == 200 and len(recs) >= 3 and has_rec_fields,
+           f"Total: {data.get('total_recommendations')}, Critical: {data.get('critical_count')}, Types: {rec_types}")
+
     passed_count = sum(1 for r in results if r["passed"])
     total_count = len(results)
 

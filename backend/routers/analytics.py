@@ -6,6 +6,7 @@ import crud
 import schemas
 from services.anomaly import detect_anomalies
 from services.forecasting import generate_demand_forecast
+from services.recommendations import generate_recommendations
 
 router = APIRouter(prefix="/api", tags=["Analytics & Dashboard"])
 
@@ -36,6 +37,23 @@ def get_forecast(db: Session = Depends(get_db)):
     )
 
 
+@router.get("/analytics/recommendations", response_model=schemas.RecommendationsResponse)
+def get_recommendations(db: Session = Depends(get_db)):
+    """
+    Retrieve synthesized AI-powered fleet recommendations connecting
+    anomaly detection, demand forecasting, and real-time equipment telematics.
+    """
+    recommendations = generate_recommendations(db)
+    critical_count = sum(1 for r in recommendations if r.priority.lower() == "critical")
+    high_count = sum(1 for r in recommendations if r.priority.lower() == "high")
+    return schemas.RecommendationsResponse(
+        total_recommendations=len(recommendations),
+        critical_count=critical_count,
+        high_count=high_count,
+        recommendations=recommendations
+    )
+
+
 @router.get("/analytics/overdue", response_model=schemas.OverdueResponse)
 def get_overdue(db: Session = Depends(get_db)):
     """Retrieve all currently active rental transactions that have exceeded their expected checkin time."""
@@ -57,4 +75,3 @@ def get_alerts(db: Session = Depends(get_db)):
 def get_fleet_usage_summary(db: Session = Depends(get_db)):
     """Retrieve aggregated fleet runtime, idle hours, fuel consumption, downtime, and site breakdown."""
     return crud.get_fleet_usage_summary(db)
-

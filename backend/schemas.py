@@ -188,11 +188,14 @@ class DashboardStatsResponse(BaseModel):
 
 class AnomalyItem(BaseModel):
     equipment_id: str
-    type: str          # HIGH_IDLE_TIME, LOW_UTILIZATION, UNUSUALLY_LONG_RENTAL, MISSING_OPERATOR, etc.
+    type: str          # HIGH_IDLE_TIME, LOW_UTILIZATION, UNUSUALLY_LONG_RENTAL, MISSING_OPERATOR, OVERDUE_RENTAL, EXCESSIVE_DAILY_HOURS
     severity: str      # high, medium, low
     value: Any         # Metric value (e.g. 67.0%, 1.2 hrs/day, 35 days, Missing)
+    threshold: Optional[Any] = None  # Threshold or comparison benchmark
     message: str
+    recommended_action: Optional[str] = None  # Specific actionable mitigation
     asset_id: Optional[int] = None
+    equipment_type: Optional[str] = None
     current_site: Optional[str] = None
     metrics: Optional[Dict[str, Any]] = None
 
@@ -204,8 +207,13 @@ class AnomalyResponse(BaseModel):
 
 class ForecastItem(BaseModel):
     equipment_type: str
+    site: Optional[str] = None
+    historical_demand: Optional[int] = None
     current_demand: int
     forecast_demand: int
+    trend: Optional[str] = None  # increasing, decreasing, stable
+    forecast_period: Optional[str] = "14d"  # 7d, 14d, 30d
+    recommendation_basis: Optional[str] = None
     recommendation: str
     current_fleet_count: Optional[int] = None
     projected_demand_next_7d: Optional[int] = None
@@ -217,6 +225,27 @@ class ForecastItem(BaseModel):
 class ForecastResponse(BaseModel):
     forecast_generated_at: datetime
     forecasts: List[ForecastItem]
+
+
+class RecommendationItem(BaseModel):
+    id: str
+    recommendation_type: str  # REALLOCATE, PRE_POSITION, RETURN, INVESTIGATE_IDLE, REASSIGN
+    priority: str            # critical, high, medium, low
+    equipment_id: Optional[str] = None
+    equipment_type: Optional[str] = None
+    source_site: Optional[str] = None
+    target_site: Optional[str] = None
+    reason: str
+    supporting_metrics: Optional[Dict[str, Any]] = None
+    recommended_action: str
+    impact: Optional[str] = None
+
+
+class RecommendationsResponse(BaseModel):
+    total_recommendations: int
+    critical_count: int
+    high_count: int
+    recommendations: List[RecommendationItem]
 
 
 class AlertItem(BaseModel):

@@ -7,8 +7,8 @@ import schemas
 
 def detect_anomalies(db: Session) -> List[schemas.AnomalyItem]:
     """
-    Evaluates assets and their operational state to detect anomalies:
-    - HIGH_IDLE_TIME: Idle ratio >= 40%
+    Evaluates assets and their operational state to detect explainable anomalies:
+    - HIGH_IDLE_TIME: Idle ratio >= 40% or idle hours >= 4.0 hrs/day
     - LOW_UTILIZATION: Engine hours < 2.0 hrs/day while rented
     - UNUSUALLY_LONG_RENTAL: Active rental duration > 14 days
     - MISSING_OPERATOR: Rented asset with no operator assigned
@@ -27,9 +27,12 @@ def detect_anomalies(db: Session) -> List[schemas.AnomalyItem]:
                     equipment_id=asset.equipment_id,
                     type="MISSING_OPERATOR",
                     severity="high",
-                    value="None",
+                    value="No assigned operator",
+                    threshold="1 assigned certified operator",
                     message=f"Equipment {asset.equipment_id} is active at site '{asset.current_site or 'Unassigned'}' but has no designated operator on record.",
+                    recommended_action="Assign a certified site operator immediately to ensure safety compliance and shift logging.",
                     asset_id=asset.id,
+                    equipment_type=asset.type,
                     current_site=asset.current_site,
                     metrics={"operator_id": None}
                 )
@@ -39,14 +42,18 @@ def detect_anomalies(db: Session) -> List[schemas.AnomalyItem]:
         if asset.status == "rented" and asset.checkout_date:
             rental_duration_days = (now - asset.checkout_date).total_seconds() / 86400
             if rental_duration_days > 14.0:
+                severity = "medium" if rental_duration_days <= 21.0 else "high"
                 anomalies.append(
                     schemas.AnomalyItem(
                         equipment_id=asset.equipment_id,
                         type="UNUSUALLY_LONG_RENTAL",
-                        severity="medium" if rental_duration_days <= 21.0 else "high",
+                        severity=severity,
                         value=f"{round(rental_duration_days, 1)} days",
+                        threshold="14.0 days maximum standard lease",
                         message=f"Rental duration has reached {round(rental_duration_days, 1)} days at {asset.current_site or 'site'}. Standard rental review recommended.",
+                        recommended_action="Review site contract duration with project supervisor; execute lease extension or schedule return intake.",
                         asset_id=asset.id,
+                        equipment_type=asset.type,
                         current_site=asset.current_site,
                         metrics={"rental_duration_days": round(rental_duration_days, 1)}
                     )
@@ -57,15 +64,18 @@ def detect_anomalies(db: Session) -> List[schemas.AnomalyItem]:
         if total_daily_hours > 0:
             idle_ratio_pct = round(((asset.idle_hours_per_day or 0.0) / total_daily_hours) * 100, 1)
             if idle_ratio_pct >= 40.0 or (asset.idle_hours_per_day or 0.0) >= 4.0:
-                severity = "high" if (idle_ratio_pct >= 60.0 or asset.idle_hours_per_day >= 5.5) else "medium"
+                severity = "high" if (idle_ratio_pct >= 60.0 or (asset.idle_hours_per_day or 0) >= 5.5) else "medium"
                 anomalies.append(
                     schemas.AnomalyItem(
                         equipment_id=asset.equipment_id,
                         type="HIGH_IDLE_TIME",
                         severity=severity,
-                        value=f"{idle_ratio_pct}%",
-                        message=f"High idle ratio of {idle_ratio_pct}% ({asset.idle_hours_per_day}h idle vs {asset.engine_hours_per_day}h engine). Fuel burn efficiency alert.",
+                        value=f"{idle_ratio_pct}% idle ({asset.idle_hours_per_day}h/day)",
+                        threshold="<30.0% idle ratio (max 3.5h/day)",
+                        message=f"High idle ratio of {idle_ratio_pct}% ({asset.idle_hours_per_day}h idle vs {asset.engine_hours_per_day}h engine). Excessive fuel consumption and unnecessary hour accumulation.",
+                        recommended_action="Review operator idle cutoff rules with field foreman or adjust machine auto-shutdown timer.",
                         asset_id=asset.id,
+                        equipment_type=asset.type,
                         current_site=asset.current_site,
                         metrics={
                             "engine_hours_per_day": asset.engine_hours_per_day,
@@ -76,16 +86,19 @@ def detect_anomalies(db: Session) -> List[schemas.AnomalyItem]:
                 )
 
         # 4. Check LOW_UTILIZATION (engine hours < 2.0 hrs/day while rented)
-        if asset.status == "rented" and asset.engine_hours_per_day < 2.0 and asset.operating_days >= 2:
-            severity = "high" if asset.engine_hours_per_day < 1.0 else "medium"
+        if asset.status == "rented" and (asset.engine_hours_per_day or 0) < 2.0 and (asset.operating_days or 0) >= 2:
+            severity = "high" if (asset.engine_hours_per_day or 0) < 1.0 else "medium"
             anomalies.append(
                 schemas.AnomalyItem(
                     equipment_id=asset.equipment_id,
                     type="LOW_UTILIZATION",
                     severity=severity,
                     value=f"{asset.engine_hours_per_day} hrs/day",
+                    threshold=">=4.0 hrs/day active runtime benchmark",
                     message=f"Low utilization rate: only {asset.engine_hours_per_day} hrs/day engine runtime across {asset.operating_days} operating days.",
+                    recommended_action="Consider reallocating this underutilized unit to a higher-demand site or returning to depot pool.",
                     asset_id=asset.id,
+                    equipment_type=asset.type,
                     current_site=asset.current_site,
                     metrics={
                         "engine_hours_per_day": asset.engine_hours_per_day,
@@ -106,8 +119,11 @@ def detect_anomalies(db: Session) -> List[schemas.AnomalyItem]:
                         type="OVERDUE_RENTAL",
                         severity="high",
                         value=f"{days_overdue} days overdue",
+                        threshold="0.0 days overdue (on-schedule return)",
                         message=f"Equipment is overdue by {days_overdue} days ({hours_overdue} hrs) at {asset.current_site or 'site'}.",
+                        recommended_action="Initiate immediate field check-in or extend lease contract to restore fleet availability.",
                         asset_id=asset.id,
+                        equipment_type=asset.type,
                         current_site=asset.current_site,
                         metrics={
                             "expected_checkin_date": asset.expected_checkin_date.isoformat(),
@@ -125,8 +141,11 @@ def detect_anomalies(db: Session) -> List[schemas.AnomalyItem]:
                     type="EXCESSIVE_DAILY_HOURS",
                     severity="high",
                     value=f"{asset.engine_hours_per_day} hrs/day",
-                    message=f"Excessive daily runtime ({asset.engine_hours_per_day} hrs/day). Equipment may require expedited maintenance inspection.",
+                    threshold="<10.0 hrs/day single-shift benchmark",
+                    message=f"Excessive daily runtime ({asset.engine_hours_per_day} hrs/day). Equipment operating across multiple shifts without standard rest intervals.",
+                    recommended_action="Schedule expedited preventive maintenance inspection and fluid check to prevent mechanical failure.",
                     asset_id=asset.id,
+                    equipment_type=asset.type,
                     current_site=asset.current_site,
                     metrics={
                         "engine_hours_per_day": asset.engine_hours_per_day,
