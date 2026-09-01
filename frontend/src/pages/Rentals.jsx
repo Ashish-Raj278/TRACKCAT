@@ -1,19 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  CalendarDays,
-  Truck,
   AlertTriangle,
-  Clock,
-  CheckCircle2,
-  MapPin,
-  User,
   Plus,
-  ArrowRight,
-  Filter,
   Search,
-  QrCode,
-  Bell
+  Repeat
 } from 'lucide-react';
 import { getAssets, getAlerts } from '../services/api';
 import StatusBadge from '../components/StatusBadge';
@@ -21,7 +12,6 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
 import CheckoutModal from '../components/CheckoutModal';
 import CheckinModal from '../components/CheckinModal';
-import QRScannerModal from '../components/QRScannerModal';
 
 export default function Rentals() {
   const [assets, setAssets] = useState([]);
@@ -29,7 +19,7 @@ export default function Rentals() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Tab filter: 'active' | 'available' | 'all'
+  // Tab filter: 'active' | 'overdue' | 'available' | 'all'
   const [viewTab, setViewTab] = useState('active');
   const [search, setSearch] = useState('');
 
@@ -37,7 +27,6 @@ export default function Rentals() {
   const [selectedAsset, setSelectedAsset] = useState(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [checkinOpen, setCheckinOpen] = useState(false);
-  const [qrOpen, setQrOpen] = useState(false);
 
   const fetchRentalsData = async () => {
     try {
@@ -59,6 +48,9 @@ export default function Rentals() {
 
   useEffect(() => {
     fetchRentalsData();
+    const handleUpdate = () => fetchRentalsData();
+    window.addEventListener('trackcat-asset-updated', handleUpdate);
+    return () => window.removeEventListener('trackcat-asset-updated', handleUpdate);
   }, []);
 
   const handleActionSuccess = () => {
@@ -66,11 +58,14 @@ export default function Rentals() {
   };
 
   const activeRentals = assets.filter((a) => a.status === 'rented');
+  const overdueRentals = assets.filter((a) => a.is_overdue || (a.status === 'rented' && alerts.overdue_items?.some(o => o.equipment_id === a.equipment_id)));
   const availableAssets = assets.filter((a) => a.status === 'available');
 
   const displayedAssets = (
     viewTab === 'active'
       ? activeRentals
+      : viewTab === 'overdue'
+      ? overdueRentals
       : viewTab === 'available'
       ? availableAssets
       : assets
@@ -89,25 +84,26 @@ export default function Rentals() {
   const dueSoonList = alerts.due_soon_items || [];
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-3 pb-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="op-panel p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
         <div>
-          <h1 className="text-2xl font-black tracking-tight text-white sm:text-3xl">
-            Rental <span className="text-[#FFCD11]">Operations</span>
+          <h1 className="text-sm font-semibold text-[#102A43]">
+            Active Rentals & Return Schedules
           </h1>
-          <p className="mt-1 text-sm text-slate-400">
-            Dispatch machinery, manage return schedules, and process returns via manual input or QR/RFID scan.
+          <p className="text-xs text-[#627D98]">
+            Operational equipment leases, return tracking, and overdue dispatch alerts
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            onClick={() => setQrOpen(true)}
-            className="inline-flex items-center gap-2 rounded-xl bg-amber-500/20 border border-amber-500/40 px-3.5 py-2.5 text-xs font-bold text-[#FFCD11] hover:bg-amber-500/30 transition shadow-sm"
+
+        <div className="flex items-center gap-2">
+          <Link
+            to="/terminal"
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[4px] border border-[#D9E2EC] bg-white text-xs font-medium text-[#334E68] hover:bg-[#F0F4F8] transition"
           >
-            <QrCode className="h-4 w-4" />
-            Scan QR / RFID
-          </button>
+            <Repeat className="h-3.5 w-3.5 text-[#0E7490]" />
+            Terminal
+          </Link>
           <button
             onClick={() => {
               if (availableAssets.length > 0) {
@@ -116,65 +112,53 @@ export default function Rentals() {
               }
             }}
             disabled={availableAssets.length === 0}
-            className="inline-flex items-center gap-2 rounded-xl bg-[#FFCD11] px-4 py-2.5 text-xs font-bold text-slate-950 shadow-md hover:bg-[#E5B700] transition disabled:opacity-50"
+            className="inline-flex items-center gap-1 px-3 py-1 rounded-[4px] bg-[#102A43] text-white text-xs font-medium hover:bg-[#0B1F33] transition disabled:opacity-50"
           >
-            <Plus className="h-4 w-4" />
-            Check Out Equipment
+            <Plus className="h-3.5 w-3.5" />
+            Dispatch Asset
           </button>
         </div>
       </div>
 
-      {/* Return Alerts Section (Overdue + Due Soon) */}
+      {/* RETURN SCHEDULE ALERTS */}
       {(overdueList.length > 0 || dueSoonList.length > 0) && (
-        <div className="rounded-2xl border border-rose-900/60 bg-rose-950/30 p-5 shadow-xl space-y-3">
-          <div className="flex items-center gap-3 border-b border-rose-900/40 pb-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-900/60 text-rose-300">
-              <AlertTriangle className="h-5 w-5" />
-            </div>
-            <div>
-              <h3 className="font-bold text-rose-200 text-sm">
-                Return Schedule Alerts: {overdueList.length} Overdue • {dueSoonList.length} Approaching Deadline
-              </h3>
-              <p className="text-xs text-rose-300/80">
-                Equipment requiring immediate return processing or dispatch notice.
-              </p>
+        <div className="op-panel p-3 bg-red-50/20 border-red-200">
+          <div className="flex items-center justify-between pb-2 border-b border-red-200">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-[#B91C1C]">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              <span>Return Schedule Alerts ({overdueList.length} Overdue • {dueSoonList.length} Due Soon)</span>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="mt-2.5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-xs">
             {overdueList.map((item, idx) => {
               const matchedAsset = assets.find((a) => a.equipment_id === item.equipment_id);
               return (
                 <div
                   key={`overdue-${idx}`}
-                  className="flex items-center justify-between rounded-xl border border-rose-900/50 bg-rose-950/40 p-3"
+                  className="bg-white border border-red-200 rounded-[3px] p-2.5 flex flex-col justify-between"
                 >
                   <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-white text-xs">{item.equipment_id}</span>
-                      <span className="text-[11px] text-slate-400">({item.type})</span>
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono font-bold text-[#102A43]">{item.equipment_id}</span>
+                      <span className="text-[11px] font-medium text-[#B91C1C]">+{item.overdue_days}d Overdue</span>
                     </div>
-                    <p className="text-[11px] text-slate-300 mt-0.5">Site: {item.site}</p>
-                    <p className="text-[10px] text-slate-400">Op: {item.operator_name || 'Unassigned'}</p>
+                    <p className="text-[12px] text-[#486581] mt-0.5">{item.type} • {item.site}</p>
+                    <p className="text-[11px] text-[#627D98]">Operator: {item.operator_name || 'Unassigned'}</p>
                   </div>
-                  <div className="text-right">
-                    <span className="inline-block rounded-md bg-rose-900 px-2 py-0.5 text-xs font-bold text-rose-200 border border-rose-600/40">
-                      +{item.overdue_days}d overdue
-                    </span>
-                    {matchedAsset && (
-                      <div className="mt-2">
-                        <button
-                          onClick={() => {
-                            setSelectedAsset(matchedAsset);
-                            setCheckinOpen(true);
-                          }}
-                          className="rounded-lg bg-emerald-600 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-emerald-500 transition"
-                        >
-                          Check In
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                  {matchedAsset && (
+                    <div className="mt-2 pt-1.5 border-t border-[#F0F4F8] flex justify-end">
+                      <button
+                        onClick={() => {
+                          setSelectedAsset(matchedAsset);
+                          setCheckinOpen(true);
+                        }}
+                        className="px-2 py-0.5 rounded-[3px] bg-[#B91C1C] text-white text-[11px] font-medium hover:bg-red-800 transition"
+                      >
+                        Check In
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -184,34 +168,29 @@ export default function Rentals() {
               return (
                 <div
                   key={`duesoon-${idx}`}
-                  className="flex items-center justify-between rounded-xl border border-amber-900/50 bg-amber-950/40 p-3"
+                  className="bg-white border border-amber-200 rounded-[3px] p-2.5 flex flex-col justify-between"
                 >
                   <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-white text-xs">{item.equipment_id}</span>
-                      <span className="text-[11px] text-slate-400">({item.type})</span>
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono font-bold text-[#102A43]">{item.equipment_id}</span>
+                      <span className="text-[11px] font-medium text-[#B45309]">Due in {item.hours_remaining}h</span>
                     </div>
-                    <p className="text-[11px] text-slate-300 mt-0.5">Site: {item.site}</p>
-                    <p className="text-[10px] text-slate-400">Op: {item.operator_name || 'Unassigned'}</p>
+                    <p className="text-[12px] text-[#486581] mt-0.5">{item.type} • {item.site}</p>
+                    <p className="text-[11px] text-[#627D98]">Operator: {item.operator_name || 'Unassigned'}</p>
                   </div>
-                  <div className="text-right">
-                    <span className="inline-block rounded-md bg-amber-900 px-2 py-0.5 text-xs font-bold text-amber-200 border border-amber-600/40">
-                      Due in {item.hours_remaining}h
-                    </span>
-                    {matchedAsset && (
-                      <div className="mt-2">
-                        <button
-                          onClick={() => {
-                            setSelectedAsset(matchedAsset);
-                            setCheckinOpen(true);
-                          }}
-                          className="rounded-lg bg-emerald-600 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-emerald-500 transition"
-                        >
-                          Check In
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                  {matchedAsset && (
+                    <div className="mt-2 pt-1.5 border-t border-[#F0F4F8] flex justify-end">
+                      <button
+                        onClick={() => {
+                          setSelectedAsset(matchedAsset);
+                          setCheckinOpen(true);
+                        }}
+                        className="px-2 py-0.5 rounded-[3px] bg-[#15803D] text-white text-[11px] font-medium hover:bg-[#166534] transition"
+                      >
+                        Check In
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -219,146 +198,165 @@ export default function Rentals() {
         </div>
       )}
 
-      {/* Tabs and Search Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-900/80 p-3">
-        {/* Tabs */}
-        <div className="flex items-center gap-2">
+      {/* FILTER TABS & SEARCH */}
+      <div className="op-panel p-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+        <div className="flex items-center gap-1">
           <button
             onClick={() => setViewTab('active')}
-            className={`rounded-xl px-4 py-2 text-xs font-bold transition ${
+            className={`px-2.5 py-1 rounded-[3px] font-medium transition ${
               viewTab === 'active'
-                ? 'bg-[#FFCD11] text-slate-950 shadow'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                ? 'bg-[#102A43] text-white'
+                : 'text-[#627D98] hover:bg-[#F0F4F8]'
             }`}
           >
             Active Leases ({activeRentals.length})
           </button>
           <button
-            onClick={() => setViewTab('available')}
-            className={`rounded-xl px-4 py-2 text-xs font-bold transition ${
-              viewTab === 'available'
-                ? 'bg-[#FFCD11] text-slate-950 shadow'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+            onClick={() => setViewTab('overdue')}
+            className={`px-2.5 py-1 rounded-[3px] font-medium transition ${
+              viewTab === 'overdue'
+                ? 'bg-[#B91C1C] text-white'
+                : 'text-[#627D98] hover:bg-[#F0F4F8]'
             }`}
           >
-            Available Depot ({availableAssets.length})
+            Overdue ({overdueRentals.length})
+          </button>
+          <button
+            onClick={() => setViewTab('available')}
+            className={`px-2.5 py-1 rounded-[3px] font-medium transition ${
+              viewTab === 'available'
+                ? 'bg-[#15803D] text-white'
+                : 'text-[#627D98] hover:bg-[#F0F4F8]'
+            }`}
+          >
+            Available in Depot ({availableAssets.length})
           </button>
           <button
             onClick={() => setViewTab('all')}
-            className={`rounded-xl px-4 py-2 text-xs font-bold transition ${
+            className={`px-2.5 py-1 rounded-[3px] font-medium transition ${
               viewTab === 'all'
-                ? 'bg-[#FFCD11] text-slate-950 shadow'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                ? 'bg-[#102A43] text-white'
+                : 'text-[#627D98] hover:bg-[#F0F4F8]'
             }`}
           >
-            All Machinery ({assets.length})
+            All ({assets.length})
           </button>
         </div>
 
-        {/* Search Input */}
-        <div className="relative sm:w-72">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+        <div className="relative sm:w-56">
+          <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-[#829AB1]" />
           <input
             type="text"
-            placeholder="Search active rentals..."
+            placeholder="Filter leases..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-xl border border-slate-700 bg-slate-800/90 pl-9 pr-3.5 py-1.5 text-xs text-white placeholder-slate-400 focus:border-[#FFCD11] focus:outline-none"
+            className="w-full rounded-[4px] border border-[#D9E2EC] bg-white pl-8 pr-2.5 py-1 text-xs text-[#102A43] placeholder-[#829AB1] focus:border-[#0E7490] focus:outline-none"
           />
         </div>
       </div>
 
-      {/* Main Table */}
       {loading ? (
-        <LoadingSpinner message="Synchronizing rental schedules & statuses..." />
+        <LoadingSpinner message="Querying lease records..." />
       ) : error ? (
         <ErrorMessage message={error} onRetry={fetchRentalsData} />
       ) : displayedAssets.length === 0 ? (
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-12 text-center">
-          <CalendarDays className="mx-auto h-12 w-12 text-slate-500 mb-3" />
-          <h3 className="text-base font-bold text-white">No Rentals Match Filter</h3>
-          <p className="text-xs text-slate-400 mt-1">Switch tabs or clear search to view equipment.</p>
+        <div className="op-panel p-8 text-center text-xs text-[#627D98]">
+          No lease records found for the selected filter.
         </div>
       ) : (
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/90 shadow-xl overflow-hidden">
+        /* TABLE OF RENTAL RECORDS */
+        <div className="op-panel overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b border-slate-800 bg-slate-950/60 text-[11px] uppercase tracking-wider text-slate-400">
+            <table className="op-table">
+              <thead>
                 <tr>
-                  <th className="py-3.5 px-4">Equipment ID</th>
-                  <th className="py-3.5 px-4">Category</th>
-                  <th className="py-3.5 px-4">Status</th>
-                  <th className="py-3.5 px-4">Job Site</th>
-                  <th className="py-3.5 px-4">Operator</th>
-                  <th className="py-3.5 px-4">Checkout Date</th>
-                  <th className="py-3.5 px-4">Expected Return</th>
-                  <th className="py-3.5 px-4 text-right">Actions</th>
+                  <th>Equipment ID</th>
+                  <th>Type</th>
+                  <th>Job Site</th>
+                  <th>Operator</th>
+                  <th>Checked Out</th>
+                  <th>Expected Return</th>
+                  <th>Duration</th>
+                  <th>Status</th>
+                  <th className="text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
-                {displayedAssets.map((asset) => (
-                  <tr key={asset.id} className="hover:bg-slate-800/40 transition">
-                    <td className="py-3.5 px-4 font-bold text-white">
-                      <Link to={`/assets/${asset.id}`} className="hover:text-[#FFCD11] transition">
-                        {asset.equipment_id}
-                      </Link>
-                    </td>
-                    <td className="py-3.5 px-4 text-slate-300">{asset.type}</td>
-                    <td className="py-3.5 px-4">
-                      <StatusBadge status={asset.status} isOverdue={asset.is_overdue} />
-                    </td>
-                    <td className="py-3.5 px-4 text-slate-300 font-medium">{asset.current_site || 'Yard Depot'}</td>
-                    <td className="py-3.5 px-4 text-slate-300">
-                      {asset.last_operator?.name || 'Unassigned'}
-                    </td>
-                    <td className="py-3.5 px-4 text-slate-400">
-                      {asset.checkout_date
-                        ? new Date(asset.checkout_date).toLocaleDateString()
-                        : '—'}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      {asset.expected_checkin_date ? (
-                        <span className={`font-semibold ${asset.is_overdue ? 'text-rose-400' : 'text-slate-300'}`}>
-                          {new Date(asset.expected_checkin_date).toLocaleDateString()}
-                        </span>
-                      ) : (
-                        '—'
-                      )}
-                    </td>
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="flex justify-end gap-2">
-                        {asset.status === 'available' && (
-                          <button
-                            onClick={() => {
-                              setSelectedAsset(asset);
-                              setCheckoutOpen(true);
-                            }}
-                            className="rounded-lg bg-[#FFCD11] px-3 py-1 text-xs font-bold text-slate-950 hover:bg-[#E5B700] transition"
-                          >
-                            Check Out
-                          </button>
-                        )}
-                        {asset.status === 'rented' && (
-                          <button
-                            onClick={() => {
-                              setSelectedAsset(asset);
-                              setCheckinOpen(true);
-                            }}
-                            className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-bold text-white hover:bg-emerald-500 transition"
-                          >
-                            Check In
-                          </button>
-                        )}
-                        <Link
-                          to={`/assets/${asset.id}`}
-                          className="rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1 text-xs font-semibold text-slate-300 hover:bg-slate-700 transition"
-                        >
-                          Specs
+              <tbody>
+                {displayedAssets.map((asset) => {
+                  const isOverdue = asset.is_overdue;
+                  const checkoutDateStr = asset.checkout_date
+                    ? new Date(asset.checkout_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
+                    : '—';
+                  const returnDateStr = asset.expected_checkin_date
+                    ? new Date(asset.expected_checkin_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
+                    : '—';
+                  const durationStr = asset.operating_days ? `${asset.operating_days} days` : 'Active';
+
+                  return (
+                    <tr
+                      key={asset.id}
+                      className={isOverdue ? 'bg-red-50/30' : ''}
+                    >
+                      <td className="font-mono text-xs font-semibold">
+                        <Link to={`/assets/${asset.id}`} className="text-[#102A43] hover:text-[#0E7490]">
+                          {asset.equipment_id}
                         </Link>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="text-xs text-[#334E68]">{asset.type}</td>
+                      <td className="text-xs text-[#334E68] max-w-xs truncate" title={asset.current_site}>
+                        {asset.current_site || 'Central Depot'}
+                      </td>
+                      <td className="text-xs text-[#486581]">
+                        {asset.last_operator?.name || '—'}
+                      </td>
+                      <td className="font-mono text-xs text-[#486581]">
+                        {checkoutDateStr}
+                      </td>
+                      <td className="font-mono text-xs">
+                        <span className={isOverdue ? 'text-[#B91C1C] font-semibold' : 'text-[#102A43]'}>
+                          {returnDateStr}
+                        </span>
+                      </td>
+                      <td className="font-mono text-xs text-[#486581]">
+                        {durationStr}
+                      </td>
+                      <td>
+                        <StatusBadge status={asset.status} isOverdue={asset.is_overdue} />
+                      </td>
+                      <td className="text-right">
+                        <div className="flex justify-end gap-1">
+                          {asset.status === 'rented' ? (
+                            <button
+                              onClick={() => {
+                                setSelectedAsset(asset);
+                                setCheckinOpen(true);
+                              }}
+                              className="px-2 py-0.5 rounded-[3px] bg-[#15803D] text-white text-[11px] font-medium hover:bg-[#166534] transition"
+                            >
+                              Check In
+                            </button>
+                          ) : asset.status === 'available' ? (
+                            <button
+                              onClick={() => {
+                                setSelectedAsset(asset);
+                                setCheckoutOpen(true);
+                              }}
+                              className="px-2 py-0.5 rounded-[3px] bg-[#102A43] text-white text-[11px] font-medium hover:bg-[#0B1F33] transition"
+                            >
+                              Dispatch
+                            </button>
+                          ) : null}
+                          <Link
+                            to={`/assets/${asset.id}`}
+                            className="px-2 py-0.5 rounded-[3px] border border-[#D9E2EC] bg-white text-[#334E68] text-[11px] font-medium hover:bg-[#F0F4F8] transition"
+                          >
+                            Details
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -377,19 +375,6 @@ export default function Rentals() {
         isOpen={checkinOpen}
         onClose={() => setCheckinOpen(false)}
         onSuccess={handleActionSuccess}
-      />
-      <QRScannerModal
-        isOpen={qrOpen}
-        onClose={() => setQrOpen(false)}
-        assets={assets}
-        onSelectAssetForCheckout={(asset) => {
-          setSelectedAsset(asset);
-          setCheckoutOpen(true);
-        }}
-        onSelectAssetForCheckin={(asset) => {
-          setSelectedAsset(asset);
-          setCheckinOpen(true);
-        }}
       />
     </div>
   );

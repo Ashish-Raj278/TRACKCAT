@@ -1,26 +1,31 @@
 import React from 'react';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 
-export default function ErrorMessage({ message = 'An error occurred while communicating with the server.', onRetry }) {
+export default function ErrorMessage({ message, onRetry }) {
   return (
-    <div className="rounded-xl border border-rose-800/50 bg-rose-950/30 p-5 text-slate-200">
-      <div className="flex items-start gap-4">
-        <div className="rounded-lg bg-rose-900/50 p-2 text-rose-400">
-          <AlertTriangle className="h-6 w-6" />
+    <div className="bg-white border border-[#B91C1C] border-l-4 rounded-[4px] p-3 text-xs">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-2">
+          <AlertCircle className="h-4 w-4 text-[#B91C1C] shrink-0 mt-0.5" />
+          <div>
+            <h4 className="font-semibold text-[#102A43]">
+              Operational Error
+            </h4>
+            <p className="text-[#627D98] text-[12px] mt-0.5">
+              {message || 'Unable to complete telematics request.'}
+            </p>
+          </div>
         </div>
-        <div className="flex-1">
-          <h4 className="font-semibold text-rose-300">Data Synchronization Notice</h4>
-          <p className="mt-1 text-sm text-slate-300">{message}</p>
-          {onRetry && (
-            <button
-              onClick={onRetry}
-              className="mt-3 inline-flex items-center gap-2 rounded-lg bg-rose-800/60 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-rose-700 transition"
-            >
-              <RefreshCw className="h-3.5 w-3.5" />
-              Retry Connection
-            </button>
-          )}
-        </div>
+
+        {onRetry && (
+          <button
+            onClick={onRetry}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[3px] bg-[#102A43] text-white text-[11px] font-medium hover:bg-[#0B1F33] transition shrink-0"
+          >
+            <RefreshCw className="h-3 w-3" />
+            Retry
+          </button>
+        )}
       </div>
     </div>
   );

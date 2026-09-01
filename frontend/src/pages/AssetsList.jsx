@@ -12,8 +12,7 @@ import {
   PlusCircle,
   Clock,
   CheckCircle2,
-  Gauge,
-  QrCode
+  Gauge
 } from 'lucide-react';
 import { getAssets } from '../services/api';
 import StatusBadge from '../components/StatusBadge';
@@ -25,6 +24,8 @@ import UsageLogModal from '../components/UsageLogModal';
 import AssetQRModal from '../components/AssetQRModal';
 
 export default function AssetsList() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -32,7 +33,8 @@ export default function AssetsList() {
   // Filters
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [siteFilter, setSiteFilter] = useState('');
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
 
   // Modals
   const [selectedAsset, setSelectedAsset] = useState(null);
@@ -48,6 +50,7 @@ export default function AssetsList() {
       const params = {};
       if (statusFilter) params.status = statusFilter;
       if (typeFilter) params.type = typeFilter;
+      if (siteFilter) params.site = siteFilter;
       const data = await getAssets(params);
       setAssets(data || []);
     } catch (err) {
@@ -60,7 +63,10 @@ export default function AssetsList() {
 
   useEffect(() => {
     fetchFleetAssets();
-  }, [statusFilter, typeFilter]);
+    const handleUpdate = () => fetchFleetAssets();
+    window.addEventListener('trackcat-asset-updated', handleUpdate);
+    return () => window.removeEventListener('trackcat-asset-updated', handleUpdate);
+  }, [statusFilter, typeFilter, siteFilter]);
 
   const filteredAssets = assets.filter((asset) => {
     if (!searchQuery) return true;
@@ -74,66 +80,69 @@ export default function AssetsList() {
   });
 
   const equipmentTypes = Array.from(new Set(assets.map((a) => a.type)));
+  const siteList = Array.from(new Set(assets.map((a) => a.current_site).filter(Boolean)));
 
   const handleActionSuccess = () => {
     fetchFleetAssets();
   };
 
   return (
-    <div className="space-y-6 pb-12">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-black tracking-tight text-white sm:text-3xl">
-            Fleet Asset <span className="text-[#FFCD11]">Inventory</span>
-          </h1>
-          <p className="mt-1 text-sm text-slate-400">
-            Monitor machinery availability, track telematics metrics, and manage site assignments.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="rounded-xl border border-slate-700 bg-slate-800/80 px-3.5 py-2 text-xs font-semibold text-slate-300">
-            Total Units: <strong className="text-[#FFCD11]">{filteredAssets.length}</strong>
+    <div className="space-y-3 pb-6">
+      {/* Top Controls Bar */}
+      <div className="op-panel p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-semibold text-[#102A43]">
+            Asset Register
           </span>
+          <span className="text-xs text-[#627D98] bg-[#F0F4F8] px-2 py-0.5 rounded-[3px] font-mono">
+            {filteredAssets.length} of {assets.length} Units
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Link
+            to="/terminal"
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[4px] bg-[#102A43] text-white text-xs font-medium hover:bg-[#0B1F33] transition"
+          >
+            <Repeat className="h-3.5 w-3.5" />
+            Transaction Terminal
+          </Link>
         </div>
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-4 rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
-        {/* Search */}
-        <div className="relative sm:col-span-2 lg:col-span-2">
-          <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
+      {/* Filter Strip */}
+      <div className="op-panel p-2.5 grid grid-cols-1 sm:grid-cols-4 gap-2 text-xs">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-[#829AB1]" />
           <input
             type="text"
-            placeholder="Search by ID, equipment type, site, operator..."
+            placeholder="Search ID, model, operator..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-xl border border-slate-700 bg-slate-800/90 pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-400 focus:border-[#FFCD11] focus:outline-none"
+            className="w-full rounded-[4px] border border-[#D9E2EC] bg-white pl-8 pr-2.5 py-1 text-xs text-[#102A43] placeholder-[#829AB1] focus:border-[#0E7490] focus:outline-none"
           />
         </div>
 
-        {/* Status Filter */}
         <div>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-full rounded-xl border border-slate-700 bg-slate-800/90 px-3.5 py-2.5 text-xs text-white focus:border-[#FFCD11] focus:outline-none"
+            className="w-full rounded-[4px] border border-[#D9E2EC] bg-white px-2.5 py-1 text-xs text-[#102A43] focus:border-[#0E7490] focus:outline-none"
           >
-            <option value="">All Statuses (Available, Rented, Maint)</option>
-            <option value="available">Available Only</option>
-            <option value="rented">Rented / Active</option>
+            <option value="">Status: All</option>
+            <option value="available">Available</option>
+            <option value="rented">On Rent</option>
             <option value="maintenance">Maintenance</option>
           </select>
         </div>
 
-        {/* Type Filter */}
         <div>
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="w-full rounded-xl border border-slate-700 bg-slate-800/90 px-3.5 py-2.5 text-xs text-white focus:border-[#FFCD11] focus:outline-none"
+            className="w-full rounded-[4px] border border-[#D9E2EC] bg-white px-2.5 py-1 text-xs text-[#102A43] focus:border-[#0E7490] focus:outline-none"
           >
-            <option value="">All Equipment Types</option>
+            <option value="">Type: All Types</option>
             {equipmentTypes.map((t) => (
               <option key={t} value={t}>
                 {t}
@@ -141,17 +150,30 @@ export default function AssetsList() {
             ))}
           </select>
         </div>
+
+        <div>
+          <select
+            value={siteFilter}
+            onChange={(e) => setSiteFilter(e.target.value)}
+            className="w-full rounded-[4px] border border-[#D9E2EC] bg-white px-2.5 py-1 text-xs text-[#102A43] focus:border-[#0E7490] focus:outline-none"
+          >
+            <option value="">Site: All Sites</option>
+            {siteList.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {loading ? (
-        <LoadingSpinner message="Loading fleet machinery inventory..." />
+        <LoadingSpinner message="Querying equipment register..." />
       ) : error ? (
         <ErrorMessage message={error} onRetry={fetchFleetAssets} />
       ) : filteredAssets.length === 0 ? (
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-12 text-center">
-          <Truck className="mx-auto h-12 w-12 text-slate-500 mb-3" />
-          <h3 className="text-base font-bold text-white">No Equipment Found</h3>
-          <p className="text-xs text-slate-400 mt-1">Try modifying your filter or search criteria.</p>
+        <div className="op-panel p-8 text-center text-xs text-[#627D98]">
+          No equipment records matched the selected filters.
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -227,25 +249,12 @@ export default function AssetsList() {
 
               {/* Action Buttons */}
               <div className="mt-5 pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1.5">
-                  <Link
-                    to={`/assets/${asset.id}`}
-                    className="rounded-xl border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs font-semibold text-slate-300 hover:bg-slate-700 transition"
-                  >
-                    Specs
-                  </Link>
-                  <button
-                    onClick={() => {
-                      setSelectedAsset(asset);
-                      setQrOpen(true);
-                    }}
-                    title="View Asset QR Code"
-                    className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-2 py-1.5 text-xs font-medium text-[#FFCD11] hover:bg-amber-500/20 transition flex items-center gap-1"
-                  >
-                    <QrCode className="h-3.5 w-3.5" />
-                    QR
-                  </button>
-                </div>
+                <Link
+                  to={`/assets/${asset.id}`}
+                  className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:bg-slate-700 transition"
+                >
+                  Full Specs
+                </Link>
 
                 <div className="flex gap-2">
                   <button

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, MapPin, Gauge, Activity, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { X, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { logUsage } from '../services/api';
 
 export default function UsageLogModal({ asset, isOpen, onClose, onSuccess }) {
-  const [engineHours, setEngineHours] = useState('6.0');
+  const [engineHours, setEngineHours] = useState('6.5');
   const [idleHours, setIdleHours] = useState('1.5');
-  const [fuelUsed, setFuelUsed] = useState('24.5');
+  const [fuelUsed, setFuelUsed] = useState('26.0');
   const [logDate, setLogDate] = useState('');
   const [location, setLocation] = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,8 +17,8 @@ export default function UsageLogModal({ asset, isOpen, onClose, onSuccess }) {
       setError(null);
       setSuccessMsg(null);
       setLogDate(new Date().toISOString().slice(0, 16));
-      setLocation(asset?.current_site || 'Main Site Depot');
-      setFuelUsed(String(Math.round(Number(engineHours || 6) * 4.0)));
+      setLocation(asset?.current_site || 'Central Depot');
+      setFuelUsed(String(Math.round(Number(engineHours || 6.5) * 4.0)));
     }
   }, [isOpen, asset]);
 
@@ -44,11 +44,11 @@ export default function UsageLogModal({ asset, isOpen, onClose, onSuccess }) {
       };
 
       const res = await logUsage(payload);
-      setSuccessMsg(`Daily telemetry logged for ${asset.equipment_id}.`);
+      setSuccessMsg(`Telemetry logged for ${asset.equipment_id}.`);
       setTimeout(() => {
         if (onSuccess) onSuccess(res);
         onClose();
-      }, 1000);
+      }, 900);
     } catch (err) {
       setError(err.message || 'Failed to record telematics log.');
     } finally {
@@ -57,64 +57,61 @@ export default function UsageLogModal({ asset, isOpen, onClose, onSuccess }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="relative w-full max-w-lg rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="relative w-full max-w-md rounded-[4px] border border-[#D9E2EC] bg-white p-5 shadow-lg">
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white transition"
+          className="absolute right-4 top-4 p-1 text-[#829AB1] hover:text-[#102A43] transition"
         >
-          <X className="h-5 w-5" />
+          <X className="h-4 w-4" />
         </button>
 
-        <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/20 text-blue-400">
-            <Gauge className="h-5 w-5" />
-          </div>
-          <div>
-            <h3 className="text-lg font-bold text-white">Record Daily Telematics</h3>
-            <p className="text-xs text-slate-400">Push engine runtime, idle hours & fuel usage</p>
-          </div>
+        {/* Header */}
+        <div className="border-b border-[#D9E2EC] pb-3">
+          <h3 className="text-sm font-semibold text-[#102A43]">
+            Record Shift Telematics
+          </h3>
+          <p className="text-[12px] text-[#627D98] mt-0.5">
+            Log machinery runtime, idle hours, and fuel consumption
+          </p>
         </div>
 
-        <div className="my-4 rounded-xl bg-slate-800/70 p-3.5 border border-slate-700/50">
-          <div className="flex justify-between items-center text-sm">
-            <span className="font-bold text-[#FFCD11]">{asset.equipment_id}</span>
-            <span className="text-xs text-slate-300">{asset.type}</span>
-          </div>
+        {/* Equipment Spec Strip */}
+        <div className="my-3 rounded-[4px] bg-[#F8FAFC] border border-[#D9E2EC] p-2.5 flex items-center justify-between text-xs">
+          <span className="font-mono font-bold text-[#102A43]">{asset.equipment_id}</span>
+          <span className="text-[#627D98]">{asset.type}</span>
         </div>
 
         {error && (
-          <div className="mb-4 flex items-center gap-2 rounded-lg bg-rose-950/60 border border-rose-600/50 p-3 text-xs text-rose-300">
-            <AlertCircle className="h-4 w-4 shrink-0 text-rose-400" />
+          <div className="mb-3 flex items-center gap-2 rounded-[3px] bg-red-50 border border-red-200 p-2 text-xs text-[#B91C1C]">
+            <AlertCircle className="h-4 w-4 shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
         {successMsg && (
-          <div className="mb-4 flex items-center gap-2 rounded-lg bg-emerald-950/60 border border-emerald-600/50 p-3 text-xs text-emerald-300">
-            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />
+          <div className="mb-3 flex items-center gap-2 rounded-[3px] bg-emerald-50 border border-emerald-200 p-2 text-xs text-[#15803D] font-medium">
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
             <span>{successMsg}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3 text-xs">
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5 flex items-center gap-1.5">
-              <Calendar className="h-3.5 w-3.5 text-[#FFCD11]" />
-              Telemetry Log Timestamp
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#486581] mb-1">
+              Timestamp
             </label>
             <input
               type="datetime-local"
               value={logDate}
               onChange={(e) => setLogDate(e.target.value)}
-              className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3.5 py-2.5 text-sm text-white focus:border-[#FFCD11] focus:outline-none"
+              className="w-full rounded-[4px] border border-[#D9E2EC] bg-white px-2.5 py-1.5 text-xs text-[#102A43] focus:border-[#0E7490] focus:outline-none font-mono"
             />
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-2.5">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5 flex items-center gap-1.5">
-                <Gauge className="h-3.5 w-3.5 text-[#FFCD11]" />
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#486581] mb-1">
                 Engine (h) *
               </label>
               <input
@@ -127,13 +124,12 @@ export default function UsageLogModal({ asset, isOpen, onClose, onSuccess }) {
                   setFuelUsed(String(Math.round(Number(e.target.value || 0) * 4.0)));
                 }}
                 required
-                className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-white focus:border-[#FFCD11] focus:outline-none"
+                className="w-full rounded-[4px] border border-[#D9E2EC] bg-white px-2.5 py-1.5 text-xs text-[#102A43] focus:border-[#0E7490] focus:outline-none font-mono"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5 flex items-center gap-1.5">
-                <Activity className="h-3.5 w-3.5 text-amber-400" />
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#486581] mb-1">
                 Idle (h) *
               </label>
               <input
@@ -143,12 +139,12 @@ export default function UsageLogModal({ asset, isOpen, onClose, onSuccess }) {
                 value={idleHours}
                 onChange={(e) => setIdleHours(e.target.value)}
                 required
-                className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-white focus:border-amber-400 focus:outline-none"
+                className="w-full rounded-[4px] border border-[#D9E2EC] bg-white px-2.5 py-1.5 text-xs text-[#102A43] focus:border-[#0E7490] focus:outline-none font-mono"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5 flex items-center gap-1.5 text-emerald-400">
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#486581] mb-1">
                 Fuel (gal)
               </label>
               <input
@@ -157,45 +153,44 @@ export default function UsageLogModal({ asset, isOpen, onClose, onSuccess }) {
                 min="0"
                 value={fuelUsed}
                 onChange={(e) => setFuelUsed(e.target.value)}
-                className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-white focus:border-emerald-400 focus:outline-none"
+                className="w-full rounded-[4px] border border-[#D9E2EC] bg-white px-2.5 py-1.5 text-xs text-[#102A43] focus:border-[#0E7490] focus:outline-none font-mono"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5 flex items-center gap-1.5">
-              <MapPin className="h-3.5 w-3.5 text-[#FFCD11]" />
-              Operating Site Location
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#486581] mb-1">
+              Location / Site
             </label>
             <input
               type="text"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               placeholder="e.g. North River Highway Expansion"
-              className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3.5 py-2.5 text-sm text-white focus:border-[#FFCD11] focus:outline-none"
+              className="w-full rounded-[4px] border border-[#D9E2EC] bg-white px-2.5 py-1.5 text-xs text-[#102A43] focus:border-[#0E7490] focus:outline-none"
             />
           </div>
 
-          <div className="mt-6 flex justify-end gap-3 pt-2">
+          <div className="mt-4 flex justify-end gap-2 pt-2 border-t border-[#D9E2EC]">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-xs font-semibold text-slate-300 hover:bg-slate-700 transition"
+              className="rounded-[4px] border border-[#D9E2EC] bg-white px-3 py-1.5 text-xs font-medium text-[#334E68] hover:bg-[#F0F4F8] transition"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="inline-flex items-center gap-2 rounded-xl bg-blue-500 px-5 py-2.5 text-xs font-bold text-white hover:bg-blue-600 transition disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-[4px] bg-[#102A43] px-3.5 py-1.5 text-xs font-medium text-white hover:bg-[#0B1F33] transition disabled:opacity-50"
             >
               {loading ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Recording...
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Saving...
                 </>
               ) : (
-                'Save Telematics Log'
+                'Save Telematics'
               )}
             </button>
           </div>

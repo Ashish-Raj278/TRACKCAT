@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, MapPin, User, Truck, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { X, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { checkoutAsset, getSites, getOperators } from '../services/api';
+import StatusBadge from './StatusBadge';
 
 export default function CheckoutModal({ asset, isOpen, onClose, onSuccess }) {
   const [sites, setSites] = useState([]);
@@ -16,19 +17,18 @@ export default function CheckoutModal({ asset, isOpen, onClose, onSuccess }) {
     if (isOpen) {
       setError(null);
       setSuccessMsg(null);
-      // default 7 days from today
       const defaultReturn = new Date();
       defaultReturn.setDate(defaultReturn.getDate() + 7);
       defaultReturn.setHours(18, 0, 0, 0);
       setExpectedReturnTime(defaultReturn.toISOString().slice(0, 16));
 
       getSites().then(data => {
-        setSites(data);
-        if (data.length > 0) setSiteId(data[0].id);
+        setSites(data || []);
+        if (data && data.length > 0) setSiteId(String(data[0].id));
       }).catch(() => {});
 
       getOperators().then(data => {
-        setOperators(data);
+        setOperators(data || []);
       }).catch(() => {});
     }
   }, [isOpen, asset]);
@@ -42,7 +42,7 @@ export default function CheckoutModal({ asset, isOpen, onClose, onSuccess }) {
       return;
     }
     if (!expectedReturnTime) {
-      setError('Please select an expected return date and time.');
+      setError('Please specify the expected return date & time.');
       return;
     }
 
@@ -61,134 +61,127 @@ export default function CheckoutModal({ asset, isOpen, onClose, onSuccess }) {
       setTimeout(() => {
         if (onSuccess) onSuccess(res);
         onClose();
-      }, 1000);
+      }, 900);
     } catch (err) {
-      setError(err.message || 'Checkout failed. Please check parameters and try again.');
+      setError(err.message || 'Equipment checkout failed. Verify parameters.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="relative w-full max-w-lg rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="relative w-full max-w-md rounded-[4px] border border-[#D9E2EC] bg-white p-5 shadow-lg">
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white transition"
+          className="absolute right-4 top-4 p-1 text-[#829AB1] hover:text-[#102A43] transition"
         >
-          <X className="h-5 w-5" />
+          <X className="h-4 w-4" />
         </button>
 
-        <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/20 text-[#FFCD11]">
-            <Truck className="h-5 w-5" />
-          </div>
-          <div>
-            <h3 className="text-lg font-bold text-white">Equipment Checkout</h3>
-            <p className="text-xs text-slate-400">Deploy equipment to site & assign operator</p>
-          </div>
+        {/* Modal Header */}
+        <div className="border-b border-[#D9E2EC] pb-3">
+          <h3 className="text-sm font-semibold text-[#102A43]">
+            Equipment Check-Out
+          </h3>
+          <p className="text-[12px] text-[#627D98] mt-0.5">
+            Assign job site deployment and operator
+          </p>
         </div>
 
-        {/* Selected Asset Info Banner */}
-        <div className="my-4 rounded-xl bg-slate-800/70 p-3.5 border border-slate-700/50">
-          <div className="flex justify-between items-center text-sm">
-            <div>
-              <span className="font-bold text-[#FFCD11]">{asset.equipment_id}</span>
-              <span className="text-slate-300 ml-2">({asset.type})</span>
-            </div>
-            <span className="text-xs text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-600/30">
-              Ready for Checkout
-            </span>
+        {/* Equipment Spec Strip */}
+        <div className="my-3 rounded-[4px] bg-[#F8FAFC] border border-[#D9E2EC] p-2.5 flex items-center justify-between text-xs">
+          <div>
+            <span className="font-mono font-bold text-[#102A43] text-sm">{asset.equipment_id}</span>
+            <span className="text-[#627D98] ml-2">{asset.type}</span>
           </div>
+          <StatusBadge status={asset.status} isOverdue={asset.is_overdue} />
         </div>
 
         {error && (
-          <div className="mb-4 flex items-center gap-2 rounded-lg bg-rose-950/60 border border-rose-600/50 p-3 text-xs text-rose-300">
-            <AlertCircle className="h-4 w-4 shrink-0 text-rose-400" />
+          <div className="mb-3 flex items-center gap-2 rounded-[3px] bg-red-50 border border-red-200 p-2 text-xs text-[#B91C1C]">
+            <AlertCircle className="h-4 w-4 shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
         {successMsg && (
-          <div className="mb-4 flex items-center gap-2 rounded-lg bg-emerald-950/60 border border-emerald-600/50 p-3 text-xs text-emerald-300">
-            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />
+          <div className="mb-3 flex items-center gap-2 rounded-[3px] bg-emerald-50 border border-emerald-200 p-2 text-xs text-[#15803D] font-medium">
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
             <span>{successMsg}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3 text-xs">
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5 flex items-center gap-1.5">
-              <MapPin className="h-3.5 w-3.5 text-[#FFCD11]" />
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#486581] mb-1">
               Destination Site *
             </label>
             <select
               value={siteId}
               onChange={(e) => setSiteId(e.target.value)}
-              className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3.5 py-2.5 text-sm text-white focus:border-[#FFCD11] focus:outline-none"
+              className="w-full rounded-[4px] border border-[#D9E2EC] bg-white px-2.5 py-1.5 text-xs text-[#102A43] focus:border-[#0E7490] focus:outline-none"
               required
             >
               {sites.map((site) => (
                 <option key={site.id} value={site.id}>
-                  {site.site_name} ({site.location})
+                  {site.site_code ? `[${site.site_code}] ` : ''}{site.site_name}
                 </option>
               ))}
             </select>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5 flex items-center gap-1.5">
-              <User className="h-3.5 w-3.5 text-[#FFCD11]" />
-              Designated Operator (Optional)
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#486581] mb-1">
+              Designated Operator
             </label>
             <select
               value={operatorId}
               onChange={(e) => setOperatorId(e.target.value)}
-              className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3.5 py-2.5 text-sm text-white focus:border-[#FFCD11] focus:outline-none"
+              className="w-full rounded-[4px] border border-[#D9E2EC] bg-white px-2.5 py-1.5 text-xs text-[#102A43] focus:border-[#0E7490] focus:outline-none"
             >
               <option value="">-- No operator assigned --</option>
               {operators.map((op) => (
                 <option key={op.id} value={op.id}>
-                  {op.name} ({op.operator_code})
+                  [{op.operator_code}] {op.name}
                 </option>
               ))}
             </select>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5 flex items-center gap-1.5">
-              <Calendar className="h-3.5 w-3.5 text-[#FFCD11]" />
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#486581] mb-1">
               Expected Return Date & Time *
             </label>
             <input
               type="datetime-local"
               value={expectedReturnTime}
               onChange={(e) => setExpectedReturnTime(e.target.value)}
-              className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3.5 py-2.5 text-sm text-white focus:border-[#FFCD11] focus:outline-none"
+              className="w-full rounded-[4px] border border-[#D9E2EC] bg-white px-2.5 py-1.5 text-xs text-[#102A43] focus:border-[#0E7490] focus:outline-none"
               required
             />
           </div>
 
-          <div className="mt-6 flex justify-end gap-3 pt-2">
+          <div className="mt-4 flex justify-end gap-2 pt-2 border-t border-[#D9E2EC]">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-xs font-semibold text-slate-300 hover:bg-slate-700 transition"
+              className="rounded-[4px] border border-[#D9E2EC] bg-white px-3 py-1.5 text-xs font-medium text-[#334E68] hover:bg-[#F0F4F8] transition"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="inline-flex items-center gap-2 rounded-xl bg-[#FFCD11] px-5 py-2.5 text-xs font-bold text-slate-950 hover:bg-[#E5B700] transition disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-[4px] bg-[#102A43] px-3.5 py-1.5 text-xs font-medium text-white hover:bg-[#0B1F33] transition disabled:opacity-50"
             >
               {loading ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Processing...
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Dispatching...
                 </>
               ) : (
-                'Confirm Checkout'
+                'Confirm Check-Out'
               )}
             </button>
           </div>
