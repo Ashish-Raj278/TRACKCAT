@@ -393,132 +393,165 @@ def seed_database():
 
         # 1. EQ-CAT-320 (Normal Hydraulic Excavator) - 7 daily logs
         for i in range(7):
+            eh = round(random.uniform(7.0, 8.2), 1)
+            ih = round(random.uniform(1.4, 2.0), 1)
             usage_logs_to_add.append(
                 models.UsageLog(
                     asset_id=1,
                     date=now - timedelta(days=6 - i),
-                    engine_hours=round(random.uniform(7.0, 8.2), 1),
-                    idle_hours=round(random.uniform(1.4, 2.0), 1),
+                    engine_hours=eh,
+                    idle_hours=ih,
+                    fuel_used_gallons=round(eh * 4.2 + ih * 0.8, 1),
                     location="Downtown Metro Rail Extension"
                 )
             )
 
         # 2. EQ-CAT-336 (Overdue Excavator) - 10 daily logs
         for i in range(10):
+            eh = round(random.uniform(7.8, 8.9), 1)
+            ih = round(random.uniform(1.8, 2.4), 1)
             usage_logs_to_add.append(
                 models.UsageLog(
                     asset_id=2,
                     date=now - timedelta(days=10 - i),
-                    engine_hours=round(random.uniform(7.8, 8.9), 1),
-                    idle_hours=round(random.uniform(1.8, 2.4), 1),
+                    engine_hours=eh,
+                    idle_hours=ih,
+                    fuel_used_gallons=round(eh * 4.8 + ih * 0.9, 1),
                     location="North River Highway Expansion"
                 )
             )
 
         # 3. EQ-CAT-D6 (High Idle Bulldozer - 67% idle ratio) - 8 daily logs
         for i in range(8):
+            eh = round(random.uniform(2.8, 3.6), 1)
+            ih = round(random.uniform(6.0, 7.2), 1)
             usage_logs_to_add.append(
                 models.UsageLog(
                     asset_id=3,
                     date=now - timedelta(days=7 - i),
-                    engine_hours=round(random.uniform(2.8, 3.6), 1),
-                    idle_hours=round(random.uniform(6.0, 7.2), 1),
+                    engine_hours=eh,
+                    idle_hours=ih,
+                    fuel_used_gallons=round(eh * 5.0 + ih * 1.5, 1),
                     location="Greenfields Solar Farm Phase 2"
                 )
             )
 
         # 4. EQ-CAT-D8 (Available Bulldozer) - 5 historical logs
         for i in range(5):
+            eh = round(random.uniform(5.5, 6.8), 1)
+            ih = round(random.uniform(1.2, 1.8), 1)
             usage_logs_to_add.append(
                 models.UsageLog(
                     asset_id=4,
                     date=now - timedelta(days=15 - i),
-                    engine_hours=round(random.uniform(5.5, 6.8), 1),
-                    idle_hours=round(random.uniform(1.2, 1.8), 1),
+                    engine_hours=eh,
+                    idle_hours=ih,
+                    fuel_used_gallons=round(eh * 6.5 + ih * 1.2, 1),
                     location="Main Yard Depot"
                 )
             )
 
         # 5. EQ-CAT-950 (Low Utilization Loader - 1.2h engine/day) - 7 daily logs
         for i in range(7):
+            eh = round(random.uniform(0.8, 1.5), 1)
+            ih = round(random.uniform(0.5, 1.0), 1)
             usage_logs_to_add.append(
                 models.UsageLog(
                     asset_id=5,
                     date=now - timedelta(days=7 - i),
-                    engine_hours=round(random.uniform(0.8, 1.5), 1),
-                    idle_hours=round(random.uniform(0.5, 1.0), 1),
+                    engine_hours=eh,
+                    idle_hours=ih,
+                    fuel_used_gallons=round(eh * 3.8 + ih * 0.7, 1),
                     location="Apex Commercial Hub & Tower"
                 )
             )
 
         # 6. EQ-CAT-980 (Available Wheel Loader) - 5 historical logs
         for i in range(5):
+            eh = round(random.uniform(6.5, 7.5), 1)
+            ih = round(random.uniform(1.5, 2.2), 1)
             usage_logs_to_add.append(
                 models.UsageLog(
                     asset_id=6,
                     date=now - timedelta(days=12 - i),
-                    engine_hours=round(random.uniform(6.5, 7.5), 1),
-                    idle_hours=round(random.uniform(1.5, 2.2), 1),
+                    engine_hours=eh,
+                    idle_hours=ih,
+                    fuel_used_gallons=round(eh * 5.2 + ih * 1.0, 1),
                     location="Main Yard Depot"
                 )
             )
 
         # 7. EQ-CAT-420 (Normal Backhoe Loader) - 5 daily logs
         for i in range(5):
+            eh = round(random.uniform(6.2, 7.4), 1)
+            ih = round(random.uniform(1.1, 1.6), 1)
             usage_logs_to_add.append(
                 models.UsageLog(
                     asset_id=7,
                     date=now - timedelta(days=4 - i),
-                    engine_hours=round(random.uniform(6.2, 7.4), 1),
-                    idle_hours=round(random.uniform(1.1, 1.6), 1),
+                    engine_hours=eh,
+                    idle_hours=ih,
+                    fuel_used_gallons=round(eh * 3.2 + ih * 0.6, 1),
                     location="Downtown Metro Rail Extension"
                 )
             )
 
         # 8. EQ-CAT-430 (Overdue Backhoe) - 8 daily logs
         for i in range(8):
+            eh = round(random.uniform(5.5, 6.4), 1)
+            ih = round(random.uniform(1.8, 2.3), 1)
             usage_logs_to_add.append(
                 models.UsageLog(
                     asset_id=8,
                     date=now - timedelta(days=8 - i),
-                    engine_hours=round(random.uniform(5.5, 6.4), 1),
-                    idle_hours=round(random.uniform(1.8, 2.3), 1),
+                    engine_hours=eh,
+                    idle_hours=ih,
+                    fuel_used_gallons=round(eh * 3.5 + ih * 0.8, 1),
                     location="Harbor Port Logistics Terminal"
                 )
             )
 
         # 9. EQ-CAT-259 (Excessive Hours Skid Steer - 14.5h/day) - 6 daily logs
         for i in range(6):
+            eh = round(random.uniform(14.0, 15.5), 1)
+            ih = round(random.uniform(1.8, 2.5), 1)
             usage_logs_to_add.append(
                 models.UsageLog(
                     asset_id=9,
                     date=now - timedelta(days=5 - i),
-                    engine_hours=round(random.uniform(14.0, 15.5), 1),
-                    idle_hours=round(random.uniform(1.8, 2.5), 1),
+                    engine_hours=eh,
+                    idle_hours=ih,
+                    fuel_used_gallons=round(eh * 2.8 + ih * 0.5, 1),
                     location="North River Highway Expansion"
                 )
             )
 
         # 10. EQ-CAT-272 (Available Skid Steer) - 4 historical logs
         for i in range(4):
+            eh = round(random.uniform(5.0, 6.0), 1)
+            ih = round(random.uniform(1.0, 1.5), 1)
             usage_logs_to_add.append(
                 models.UsageLog(
                     asset_id=10,
                     date=now - timedelta(days=10 - i),
-                    engine_hours=round(random.uniform(5.0, 6.0), 1),
-                    idle_hours=round(random.uniform(1.0, 1.5), 1),
+                    engine_hours=eh,
+                    idle_hours=ih,
+                    fuel_used_gallons=round(eh * 2.5 + ih * 0.5, 1),
                     location="Main Yard Depot"
                 )
             )
 
         # 11. EQ-CAT-RT100 (High Idle Crane - 70% idle ratio) - 6 daily logs
         for i in range(6):
+            eh = round(random.uniform(2.0, 3.0), 1)
+            ih = round(random.uniform(5.2, 6.4), 1)
             usage_logs_to_add.append(
                 models.UsageLog(
                     asset_id=12,
                     date=now - timedelta(days=6 - i),
-                    engine_hours=round(random.uniform(2.0, 3.0), 1),
-                    idle_hours=round(random.uniform(5.2, 6.4), 1),
+                    engine_hours=eh,
+                    idle_hours=ih,
+                    fuel_used_gallons=round(eh * 4.5 + ih * 1.8, 1),
                     location="Harbor Port Logistics Terminal"
                 )
             )

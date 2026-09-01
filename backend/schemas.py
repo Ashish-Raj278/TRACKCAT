@@ -136,6 +136,7 @@ class UsageLogCreate(BaseModel):
     date: Optional[datetime] = Field(default_factory=datetime.utcnow)
     engine_hours: float
     idle_hours: float
+    fuel_used_gallons: Optional[float] = 0.0
     location: Optional[str] = None
 
 
@@ -146,6 +147,7 @@ class UsageLogResponse(BaseModel):
     date: datetime
     engine_hours: float
     idle_hours: float
+    fuel_used_gallons: Optional[float] = 0.0
     location: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -157,6 +159,7 @@ class AssetUsageListResponse(BaseModel):
     total_logs: int
     total_engine_hours: float
     total_idle_hours: float
+    total_fuel_used_gallons: Optional[float] = 0.0
     average_engine_hours_per_day: float
     average_idle_hours_per_day: float
     logs: List[UsageLogResponse]
@@ -177,6 +180,8 @@ class DashboardStatsResponse(BaseModel):
     average_idle_ratio: float  # Percentage of operating hours spent idling
     total_fleet_engine_hours: float
     total_fleet_idle_hours: float
+    total_fleet_fuel_used: Optional[float] = 0.0
+    fleet_downtime_hours: Optional[float] = 0.0
     active_rentals_count: int
 
 
@@ -225,6 +230,43 @@ class OverdueItem(BaseModel):
     hours_overdue: Optional[float] = None
 
 
+class DueSoonItem(BaseModel):
+    equipment_id: str
+    type: str
+    site: str
+    expected_return_date: datetime
+    hours_remaining: float
+    rental_id: Optional[int] = None
+    operator_name: Optional[str] = None
+
+
 class OverdueResponse(BaseModel):
     total_overdue: int
     overdue_items: List[OverdueItem]
+    due_soon_items: Optional[List[DueSoonItem]] = []
+
+
+class AlertsResponse(BaseModel):
+    total_alerts: int
+    total_overdue: int
+    total_due_soon: int
+    overdue_items: List[OverdueItem]
+    due_soon_items: List[DueSoonItem]
+
+
+class SiteUsageSummary(BaseModel):
+    site_name: str
+    active_assets: int
+    total_engine_hours: float
+    total_idle_hours: float
+    total_fuel_used_gallons: float
+
+
+class FleetUsageSummaryResponse(BaseModel):
+    total_engine_hours: float
+    total_idle_hours: float
+    total_fuel_used_gallons: float
+    fleet_downtime_hours: float
+    average_idle_ratio: float
+    site_breakdown: List[SiteUsageSummary]
+

@@ -74,6 +74,7 @@ class UsageLog(Base):
     date = Column(DateTime, nullable=False, default=datetime.utcnow)
     engine_hours = Column(Float, nullable=False, default=0.0)
     idle_hours = Column(Float, nullable=False, default=0.0)
+    fuel_used_gallons = Column(Float, nullable=True, default=0.0)
     location = Column(String, nullable=True)
 
     # Relationships

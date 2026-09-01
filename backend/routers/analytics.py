@@ -39,8 +39,22 @@ def get_forecast(db: Session = Depends(get_db)):
 @router.get("/analytics/overdue", response_model=schemas.OverdueResponse)
 def get_overdue(db: Session = Depends(get_db)):
     """Retrieve all currently active rental transactions that have exceeded their expected checkin time."""
-    overdue_list = crud.get_overdue_rentals(db)
+    alerts = crud.get_alerts(db)
     return schemas.OverdueResponse(
-        total_overdue=len(overdue_list),
-        overdue_items=overdue_list
+        total_overdue=alerts.total_overdue,
+        overdue_items=alerts.overdue_items,
+        due_soon_items=alerts.due_soon_items
     )
+
+
+@router.get("/analytics/alerts", response_model=schemas.AlertsResponse)
+def get_alerts(db: Session = Depends(get_db)):
+    """Retrieve both overdue rental violations and approaching due-soon reminders (next 48h)."""
+    return crud.get_alerts(db)
+
+
+@router.get("/analytics/usage-summary", response_model=schemas.FleetUsageSummaryResponse)
+def get_fleet_usage_summary(db: Session = Depends(get_db)):
+    """Retrieve aggregated fleet runtime, idle hours, fuel consumption, downtime, and site breakdown."""
+    return crud.get_fleet_usage_summary(db)
+

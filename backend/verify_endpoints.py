@@ -144,6 +144,20 @@ def run_audit_suite():
            res.status_code == 200 and data.get("asset", {}).get("status") == "available",
            f"Checked in EQ-CAT-D8, status restored to '{data.get('asset', {}).get('status')}'")
 
+    # 13. GET /api/analytics/alerts
+    res = client.get("/api/analytics/alerts")
+    data = res.json()
+    record("Get Fleet Alerts (Overdue & Due Soon)", "GET /api/analytics/alerts", res.status_code,
+           res.status_code == 200 and "overdue_items" in data and "due_soon_items" in data,
+           f"Overdue: {data.get('total_overdue')}, Due Soon: {data.get('total_due_soon')}")
+
+    # 14. GET /api/analytics/usage-summary
+    res = client.get("/api/analytics/usage-summary")
+    data = res.json()
+    record("Fleet Usage & Site Breakdown", "GET /api/analytics/usage-summary", res.status_code,
+           res.status_code == 200 and "total_fuel_used_gallons" in data and len(data.get("site_breakdown", [])) > 0,
+           f"Fuel Used: {data.get('total_fuel_used_gallons')} gal, Sites: {len(data.get('site_breakdown', []))}, Downtime: {data.get('fleet_downtime_hours')}h")
+
     passed_count = sum(1 for r in results if r["passed"])
     total_count = len(results)
 

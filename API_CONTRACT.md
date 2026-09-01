@@ -17,12 +17,14 @@
 | **Rentals** | `POST` | `/api/checkout` | Check out equipment to a site & operator with return date |
 | **Rentals** | `POST` | `/api/checkin` | Check in equipment, record telemetry, set status to `available` |
 | **Rentals** | `GET` | `/api/rentals` | List rental transaction history |
-| **Usage / Telematics** | `GET` | `/api/usage/{asset_id}` | Get telemetry logs and aggregated usage metrics for an asset |
-| **Usage / Telematics** | `POST` | `/api/usage` | Record a daily telemetry log (engine hours, idle hours, location) |
-| **Dashboard** | `GET` | `/api/dashboard/stats` | High-level fleet KPIs (utilization %, idle ratio %, counts) |
+| **Usage / Telematics** | `GET` | `/api/usage/{asset_id}` | Get telemetry logs and aggregated usage metrics (runtime, idle, fuel) |
+| **Usage / Telematics** | `POST` | `/api/usage` | Record a daily telemetry log (engine hours, idle hours, fuel, location) |
+| **Dashboard** | `GET` | `/api/dashboard/stats` | High-level fleet KPIs (utilization %, idle ratio %, total fuel, downtime) |
 | **Analytics** | `GET` | `/api/analytics/anomalies` | Detected anomalies (`HIGH_IDLE_TIME`, `LOW_UTILIZATION`, `UNUSUALLY_LONG_RENTAL`, `MISSING_OPERATOR`) |
 | **Analytics** | `GET` | `/api/analytics/forecast` | Demand forecast by equipment type (`current_demand`, `forecast_demand`, `recommendation`) |
 | **Analytics** | `GET` | `/api/analytics/overdue` | List of overdue rentals (`equipment_id`, `type`, `site`, `expected_return_date`, `overdue_days`) |
+| **Analytics** | `GET` | `/api/analytics/alerts` | Combined overdue and due-soon approaching return alerts (<48h) |
+| **Analytics** | `GET` | `/api/analytics/usage-summary` | Aggregated fleet runtime, idle, fuel, downtime & site breakdown |
 
 ---
 

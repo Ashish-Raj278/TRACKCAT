@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Optional, Tuple, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -247,6 +247,59 @@ def get_overdue_rentals(db: Session) -> List[schemas.OverdueItem]:
     return overdue_items
 
 
+def get_alerts(db: Session) -> schemas.AlertsResponse:
+    """
+    Returns both overdue rentals and approaching (due soon within 48 hours) rental reminders.
+    """
+    now = datetime.utcnow()
+    due_soon_threshold = now + timedelta(hours=48)
+
+    active_rentals = db.query(models.RentalTransaction).filter(
+        models.RentalTransaction.status == "active"
+    ).all()
+
+    overdue_items: List[schemas.OverdueItem] = []
+    due_soon_items: List[schemas.DueSoonItem] = []
+
+    for r in active_rentals:
+        if r.expected_return_time < now:
+            diff = now - r.expected_return_time
+            overdue_items.append(
+                schemas.OverdueItem(
+                    equipment_id=r.asset.equipment_id if r.asset else f"ID-{r.asset_id}",
+                    type=r.asset.type if r.asset else "Unknown",
+                    site=r.site.site_name if r.site else (r.asset.current_site if r.asset else "Unassigned"),
+                    expected_return_date=r.expected_return_time,
+                    overdue_days=round(diff.total_seconds() / 86400, 1),
+                    rental_id=r.id,
+                    operator_name=r.operator.name if r.operator else "Unassigned",
+                    checkout_time=r.checkout_time,
+                    hours_overdue=round(diff.total_seconds() / 3600, 1)
+                )
+            )
+        elif r.expected_return_time <= due_soon_threshold:
+            diff = r.expected_return_time - now
+            due_soon_items.append(
+                schemas.DueSoonItem(
+                    equipment_id=r.asset.equipment_id if r.asset else f"ID-{r.asset_id}",
+                    type=r.asset.type if r.asset else "Unknown",
+                    site=r.site.site_name if r.site else (r.asset.current_site if r.asset else "Unassigned"),
+                    expected_return_date=r.expected_return_time,
+                    hours_remaining=round(diff.total_seconds() / 3600, 1),
+                    rental_id=r.id,
+                    operator_name=r.operator.name if r.operator else "Unassigned"
+                )
+            )
+
+    return schemas.AlertsResponse(
+        total_alerts=len(overdue_items) + len(due_soon_items),
+        total_overdue=len(overdue_items),
+        total_due_soon=len(due_soon_items),
+        overdue_items=overdue_items,
+        due_soon_items=due_soon_items
+    )
+
+
 # ----------------------------------------------------
 # Usage Log CRUD & Metric Calculation
 # ----------------------------------------------------
@@ -260,6 +313,7 @@ def create_usage_log(db: Session, usage_in: schemas.UsageLogCreate) -> Tuple[mod
         date=usage_in.date or datetime.utcnow(),
         engine_hours=usage_in.engine_hours,
         idle_hours=usage_in.idle_hours,
+        fuel_used_gallons=usage_in.fuel_used_gallons if usage_in.fuel_used_gallons is not None else round(usage_in.engine_hours * 1.2, 1),
         location=usage_in.location or asset.current_site
     )
     db.add(log)
@@ -309,6 +363,7 @@ def get_usage_logs(db: Session, asset_id: int, limit: int = 30) -> schemas.Asset
 
     total_engine = round(sum(l.engine_hours for l in logs), 1)
     total_idle = round(sum(l.idle_hours for l in logs), 1)
+    total_fuel = round(sum(l.fuel_used_gallons or 0.0 for l in logs), 1)
     count = len(logs)
 
     avg_engine = round(total_engine / count, 1) if count > 0 else 0.0
@@ -320,9 +375,68 @@ def get_usage_logs(db: Session, asset_id: int, limit: int = 30) -> schemas.Asset
         total_logs=count,
         total_engine_hours=total_engine,
         total_idle_hours=total_idle,
+        total_fuel_used_gallons=total_fuel,
         average_engine_hours_per_day=avg_engine,
         average_idle_hours_per_day=avg_idle,
         logs=logs
+    )
+
+
+def get_fleet_usage_summary(db: Session) -> schemas.FleetUsageSummaryResponse:
+    """
+    Computes fleet-wide usage summary including total runtime, idle, fuel, downtime, and breakdown by site.
+    """
+    logs = db.query(models.UsageLog).all()
+    assets = db.query(models.Asset).all()
+
+    total_engine = round(sum(l.engine_hours for l in logs), 1)
+    total_idle = round(sum(l.idle_hours for l in logs), 1)
+    total_fuel = round(sum(l.fuel_used_gallons or 0.0 for l in logs), 1)
+
+    # Downtime = hours lost due to maintenance assets (estimated 8h/day per asset) + idle hours
+    maintenance_assets = sum(1 for a in assets if a.status == "maintenance")
+    fleet_downtime = round((maintenance_assets * 8.0 * 5) + total_idle, 1)
+
+    total_hours = total_engine + total_idle
+    avg_idle_ratio = round((total_idle / total_hours * 100), 1) if total_hours > 0 else 0.0
+
+    # Group by site / location
+    site_map: Dict[str, Dict[str, Any]] = {}
+    for l in logs:
+        loc = l.location or "Main Yard Depot"
+        if loc not in site_map:
+            site_map[loc] = {"engine": 0.0, "idle": 0.0, "fuel": 0.0, "active_assets": 0}
+        site_map[loc]["engine"] += l.engine_hours
+        site_map[loc]["idle"] += l.idle_hours
+        site_map[loc]["fuel"] += (l.fuel_used_gallons or 0.0)
+
+    # Count active rented assets currently at site
+    for a in assets:
+        if a.status == "rented" and a.current_site:
+            if a.current_site in site_map:
+                site_map[a.current_site]["active_assets"] += 1
+            else:
+                site_map[a.current_site] = {"engine": 0.0, "idle": 0.0, "fuel": 0.0, "active_assets": 1}
+
+    site_breakdown: List[schemas.SiteUsageSummary] = []
+    for site_name, data in site_map.items():
+        site_breakdown.append(
+            schemas.SiteUsageSummary(
+                site_name=site_name,
+                active_assets=data["active_assets"],
+                total_engine_hours=round(data["engine"], 1),
+                total_idle_hours=round(data["idle"], 1),
+                total_fuel_used_gallons=round(data["fuel"], 1)
+            )
+        )
+
+    return schemas.FleetUsageSummaryResponse(
+        total_engine_hours=total_engine,
+        total_idle_hours=total_idle,
+        total_fuel_used_gallons=total_fuel,
+        fleet_downtime_hours=fleet_downtime,
+        average_idle_ratio=avg_idle_ratio,
+        site_breakdown=site_breakdown
     )
 
 
@@ -361,6 +475,7 @@ def get_dashboard_stats(db: Session) -> schemas.DashboardStatsResponse:
     all_logs = db.query(models.UsageLog).all()
     total_engine_sum = round(sum(l.engine_hours for l in all_logs), 1)
     total_idle_sum = round(sum(l.idle_hours for l in all_logs), 1)
+    total_fuel_sum = round(sum(l.fuel_used_gallons or 0.0 for l in all_logs), 1)
 
     total_operators = db.query(models.Operator).count()
     total_sites = db.query(models.Site).count()
@@ -370,6 +485,7 @@ def get_dashboard_stats(db: Session) -> schemas.DashboardStatsResponse:
 
     utilization_rate = round((rented_assets / total_assets * 100), 1) if total_assets > 0 else 0.0
     average_idle_ratio = round(sum(idle_ratios) / len(idle_ratios), 1) if idle_ratios else 0.0
+    fleet_downtime = round((maintenance_assets * 8.0 * 5) + total_idle_sum, 1)
 
     return schemas.DashboardStatsResponse(
         total_assets=total_assets,
@@ -383,5 +499,7 @@ def get_dashboard_stats(db: Session) -> schemas.DashboardStatsResponse:
         average_idle_ratio=average_idle_ratio,
         total_fleet_engine_hours=total_engine_sum,
         total_fleet_idle_hours=total_idle_sum,
+        total_fleet_fuel_used=total_fuel_sum,
+        fleet_downtime_hours=fleet_downtime,
         active_rentals_count=active_rentals
     )
