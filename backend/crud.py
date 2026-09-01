@@ -171,11 +171,13 @@ def checkin_asset(
 
     # If telemetry hours logged during checkin
     if checkin_data.engine_hours_operated is not None:
+        fuel_val = checkin_data.fuel_used_gallons if checkin_data.fuel_used_gallons is not None else round(checkin_data.engine_hours_operated * 1.2, 1)
         usage = models.UsageLog(
             asset_id=asset.id,
             date=now,
             engine_hours=checkin_data.engine_hours_operated,
             idle_hours=checkin_data.idle_hours_operated or 0.0,
+            fuel_used_gallons=fuel_val,
             location=asset.current_site
         )
         db.add(usage)
@@ -249,50 +251,111 @@ def get_overdue_rentals(db: Session) -> List[schemas.OverdueItem]:
 
 def get_alerts(db: Session) -> schemas.AlertsResponse:
     """
-    Returns both overdue rentals and approaching (due soon within 48 hours) rental reminders.
+    Returns live fleet return schedule alerts:
+    1. OVERDUE (Critical): Active rentals past expected return time.
+    2. DUE_SOON (Warning): Active rentals due within the next 24 hours.
     """
     now = datetime.utcnow()
-    due_soon_threshold = now + timedelta(hours=48)
+    due_soon_threshold = now + timedelta(hours=24)
 
     active_rentals = db.query(models.RentalTransaction).filter(
         models.RentalTransaction.status == "active"
     ).all()
 
+    alerts_list: List[schemas.AlertItem] = []
     overdue_items: List[schemas.OverdueItem] = []
     due_soon_items: List[schemas.DueSoonItem] = []
 
     for r in active_rentals:
+        eq_id = r.asset.equipment_id if r.asset else f"ID-{r.asset_id}"
+        asset_type = r.asset.type if r.asset else "Machinery"
+        site_name = r.site.site_name if r.site else (r.asset.current_site if r.asset else "Unassigned")
+        op_name = r.operator.name if r.operator else "Unassigned"
+
         if r.expected_return_time < now:
             diff = now - r.expected_return_time
+            overdue_days = round(diff.total_seconds() / 86400, 1)
+            overdue_hours = round(diff.total_seconds() / 3600, 1)
+            
+            # Format friendly duration
+            days_int = int(overdue_days)
+            rem_hrs = int(overdue_hours % 24)
+            dur_str = f"{days_int} day{'s' if days_int != 1 else ''} and {rem_hrs} hour{'s' if rem_hrs != 1 else ''}" if days_int > 0 else f"{rem_hrs} hour{'s' if rem_hrs != 1 else ''}"
+
+            alert_item = schemas.AlertItem(
+                id=f"overdue-{r.id}",
+                type="OVERDUE",
+                severity="critical",
+                equipment_id=eq_id,
+                asset_type=asset_type,
+                site=site_name,
+                expected_return_time=r.expected_return_time,
+                overdue_hours=overdue_hours,
+                overdue_days=overdue_days,
+                hours_remaining=None,
+                message=f"{eq_id} is overdue by {dur_str} at {site_name}.",
+                rental_id=r.id,
+                operator_name=op_name
+            )
+            alerts_list.append(alert_item)
+
             overdue_items.append(
                 schemas.OverdueItem(
-                    equipment_id=r.asset.equipment_id if r.asset else f"ID-{r.asset_id}",
-                    type=r.asset.type if r.asset else "Unknown",
-                    site=r.site.site_name if r.site else (r.asset.current_site if r.asset else "Unassigned"),
+                    equipment_id=eq_id,
+                    type=asset_type,
+                    site=site_name,
                     expected_return_date=r.expected_return_time,
-                    overdue_days=round(diff.total_seconds() / 86400, 1),
+                    overdue_days=overdue_days,
                     rental_id=r.id,
-                    operator_name=r.operator.name if r.operator else "Unassigned",
+                    operator_name=op_name,
                     checkout_time=r.checkout_time,
-                    hours_overdue=round(diff.total_seconds() / 3600, 1)
+                    hours_overdue=overdue_hours
                 )
             )
         elif r.expected_return_time <= due_soon_threshold:
             diff = r.expected_return_time - now
+            hours_rem = round(diff.total_seconds() / 3600, 1)
+            hrs_int = max(1, int(hours_rem))
+
+            alert_item = schemas.AlertItem(
+                id=f"due-soon-{r.id}",
+                type="DUE_SOON",
+                severity="warning",
+                equipment_id=eq_id,
+                asset_type=asset_type,
+                site=site_name,
+                expected_return_time=r.expected_return_time,
+                overdue_hours=None,
+                overdue_days=None,
+                hours_remaining=hours_rem,
+                message=f"{eq_id} is due for return in approximately {hrs_int} hour{'s' if hrs_int != 1 else ''} at {site_name}.",
+                rental_id=r.id,
+                operator_name=op_name
+            )
+            alerts_list.append(alert_item)
+
             due_soon_items.append(
                 schemas.DueSoonItem(
-                    equipment_id=r.asset.equipment_id if r.asset else f"ID-{r.asset_id}",
-                    type=r.asset.type if r.asset else "Unknown",
-                    site=r.site.site_name if r.site else (r.asset.current_site if r.asset else "Unassigned"),
+                    equipment_id=eq_id,
+                    type=asset_type,
+                    site=site_name,
                     expected_return_date=r.expected_return_time,
-                    hours_remaining=round(diff.total_seconds() / 3600, 1),
+                    hours_remaining=hours_rem,
                     rental_id=r.id,
-                    operator_name=r.operator.name if r.operator else "Unassigned"
+                    operator_name=op_name
                 )
             )
 
+    # Sort alerts: critical / longest overdue first, then warning / soonest due
+    critical_alerts = sorted([a for a in alerts_list if a.severity == "critical"], key=lambda x: -(x.overdue_hours or 0))
+    warning_alerts = sorted([a for a in alerts_list if a.severity == "warning"], key=lambda x: (x.hours_remaining or 0))
+    sorted_alerts = critical_alerts + warning_alerts
+
     return schemas.AlertsResponse(
-        total_alerts=len(overdue_items) + len(due_soon_items),
+        total_alerts=len(sorted_alerts),
+        critical_count=len(critical_alerts),
+        warning_count=len(warning_alerts),
+        alerts=sorted_alerts,
         total_overdue=len(overdue_items),
         total_due_soon=len(due_soon_items),
         overdue_items=overdue_items,
