@@ -182,84 +182,15 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ====== ATTENTION REQUIRED BANNER ====== */}
-      {(alerts.total_alerts > 0) && (
-        <div className="rounded-2xl border border-rose-700/50 bg-rose-950/20 p-5 shadow-xl">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-500/30 text-rose-400">
-              <AlertTriangle className="h-4 w-4" />
-            </div>
-            <div>
-              <h3 className="font-bold text-white text-sm">⚠ Attention Required</h3>
-              <p className="text-[11px] text-rose-300/70">{alerts.critical_count} overdue · {alerts.warning_count} due soon</p>
-            </div>
+      {/* 2. OPERATIONAL JOB SITES PANEL */}
+      <div className="op-panel p-3.5">
+        <div className="flex items-center justify-between pb-2 border-b border-[#D9E2EC]">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[#334E68] flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5 text-[#0E7490]" />
+              Active Job Sites & Deployment
+            </span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {(alerts.alerts || []).slice(0, 4).map(alert => (
-              <div
-                key={alert.id}
-                className={`flex items-center justify-between rounded-xl border p-3 ${
-                  alert.severity === 'critical'
-                    ? 'border-rose-700/50 bg-rose-950/40'
-                    : 'border-amber-700/50 bg-amber-950/40'
-                }`}
-              >
-                <div>
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <span className="text-xs font-black text-white">{alert.equipment_id}</span>
-                    <span className="text-[10px] text-slate-400">{alert.asset_type}</span>
-                  </div>
-                  <p className="text-[11px] text-slate-400">{alert.site}</p>
-                </div>
-                <div className="text-right">
-                  {alert.severity === 'critical' ? (
-                    <span className="inline-block rounded-md bg-rose-900/80 px-2 py-0.5 text-xs font-bold text-rose-300 border border-rose-600/40">
-                      +{alert.overdue_days}d overdue
-                    </span>
-                  ) : (
-                    <span className="inline-block rounded-md bg-amber-900/80 px-2 py-0.5 text-xs font-bold text-amber-300 border border-amber-600/40">
-                      Due in {Math.round(alert.hours_remaining)}h
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Fleet Utilization"
-          value={`${stats?.utilization_rate ?? 0}%`}
-          subtitle={`${stats?.rented_assets ?? 0} of ${stats?.total_assets ?? 0} units active`}
-          icon={Truck}
-          color="amber"
-        />
-        <StatCard
-          title="Available Units"
-          value={stats?.available_assets ?? 0}
-          subtitle="Ready for deployment"
-          icon={CheckCircle2}
-          color="emerald"
-        />
-        <StatCard
-          title="Average Idle Ratio"
-          value={`${stats?.average_idle_ratio ?? 0}%`}
-          subtitle="Target threshold: <30%"
-          icon={Activity}
-          color={stats?.average_idle_ratio > 35 ? 'rose' : 'blue'}
-        />
-        <StatCard
-          title="Return Alerts"
-          value={(alerts?.overdue_items?.length || 0) + (alerts?.due_soon_items?.length || 0)}
-          subtitle={`${alerts?.overdue_items?.length || 0} overdue • ${alerts?.due_soon_items?.length || 0} due soon`}
-          icon={AlertTriangle}
-          color="rose"
-          alert={(alerts?.overdue_items?.length || 0) > 0}
-        />
-      </div>
 
           <div className="flex items-center gap-1 text-xs">
             <button
@@ -346,18 +277,32 @@ export default function Dashboard() {
           <div className="flex items-center gap-1.5">
             <ShieldAlert className="h-4 w-4 text-[#B91C1C]" />
             <span className="text-xs font-semibold uppercase tracking-wider text-[#102A43]">
-              Attention Required ({actionableAlerts.length} Exceptions)
+              Attention Required ({(alerts.alerts?.length || actionableAlerts.length)} Exceptions)
             </span>
           </div>
           <span className="text-[11px] text-[#627D98]">Prioritized by Operational Severity</span>
         </div>
 
         <div className="mt-2.5 divide-y divide-[#D9E2EC]">
-          {actionableAlerts.map((alert, idx) => (
+          {((alerts.alerts && alerts.alerts.length > 0)
+            ? alerts.alerts.map(a => {
+                const assetObj = allAssets.find(item => item.equipment_id === a.equipment_id);
+                return {
+                  severity: a.severity === 'critical' ? 'CRITICAL' : 'WARNING',
+                  assetId: a.equipment_id,
+                  type: a.type,
+                  detail: a.message,
+                  site: a.site,
+                  action: a.type === 'OVERDUE' ? 'Process return check-in or lease renewal.' : 'Approaching return deadline.',
+                  assetObj
+                };
+              })
+            : actionableAlerts
+          ).map((alert, idx) => (
             <div key={idx} className="py-2.5 first:pt-1 last:pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="space-y-0.5">
                 <div className="flex items-center gap-2">
-                  <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-[2px] font-mono ${
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-[2px] font-mono ${
                     alert.severity === 'CRITICAL'
                       ? 'bg-red-100 text-[#B91C1C]'
                       : 'bg-amber-100 text-[#B45309]'

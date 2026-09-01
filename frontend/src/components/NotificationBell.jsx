@@ -75,12 +75,12 @@ export default function NotificationBell() {
       {/* Bell Button */}
       <button
         onClick={() => setOpen(o => !o)}
-        className="relative flex items-center justify-center w-9 h-9 rounded-xl border border-slate-700 bg-slate-800/60 text-slate-300 hover:bg-slate-700 hover:text-white transition"
+        className="relative flex items-center justify-center h-7 w-7 rounded-[3px] border border-[#D9E2EC] bg-[#F8FAFC] text-[#334E68] hover:bg-[#E2E8F0] hover:text-[#102A43] transition"
         title="Fleet Alerts"
       >
-        <Bell className="h-4 w-4" />
+        <Bell className="h-3.5 w-3.5" />
         {count > 0 && (
-          <span className="absolute -top-1 -right-1 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-black text-white shadow-lg leading-none">
+          <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#B91C1C] px-1 text-[9px] font-bold text-white shadow leading-none">
             {count > 9 ? '9+' : count}
           </span>
         )}
@@ -88,7 +88,7 @@ export default function NotificationBell() {
 
       {/* Dropdown Panel */}
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-96 max-h-[520px] flex flex-col rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl shadow-black/60 z-50 overflow-hidden">
+        <div className="absolute right-0 top-full mt-2 w-96 max-h-[520px] flex flex-col rounded-xl border border-slate-700 bg-slate-900 shadow-2xl shadow-black/60 z-50 overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800 shrink-0">
             <div className="flex items-center gap-2">

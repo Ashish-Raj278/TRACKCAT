@@ -9,10 +9,12 @@ import {
   Activity,
   AlertTriangle,
   CheckCircle2,
-  Clock,
   PlusCircle,
   TrendingUp,
-  FileText
+  FileText,
+  FileSpreadsheet,
+  Gauge,
+  QrCode
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -173,15 +175,23 @@ export default function AssetDetail() {
             </div>
           </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setUsageLogOpen(true)}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-xs font-semibold text-white hover:bg-slate-700 transition"
-          >
-            <Gauge className="h-4 w-4 text-blue-400" />
-            Record Telematics
-          </button>
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => setQrOpen(true)}
+              className="px-3 py-1 rounded-[4px] border border-[#D9E2EC] bg-[#F8FAFC] text-[#102A43] text-xs font-medium hover:bg-[#E2E8F0] transition inline-flex items-center gap-1.5"
+            >
+              <QrCode className="h-3.5 w-3.5 text-[#0E7490]" />
+              Asset QR Code
+            </button>
+
+            <button
+              onClick={() => setUsageLogOpen(true)}
+              className="px-3 py-1 rounded-[4px] border border-[#D9E2EC] bg-[#F8FAFC] text-[#102A43] text-xs font-medium hover:bg-[#E2E8F0] transition inline-flex items-center gap-1.5"
+            >
+              <Gauge className="h-3.5 w-3.5 text-[#0E7490]" />
+              Record Telematics
+            </button>
 
             {asset.status === 'available' ? (
               <button
