@@ -16,7 +16,9 @@ import {
   AlertTriangle,
   Layers,
   ChevronRight,
-  HelpCircle
+  HeartPulse,
+  Share2,
+  Gauge
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -32,6 +34,8 @@ import {
   getForecast,
   getAnomalies,
   getRecommendations,
+  getOptimization,
+  getHealth,
   getDashboardStats,
   getFleetUsageSummary,
   getAssets
@@ -45,6 +49,8 @@ export default function Analytics() {
   const [forecastData, setForecastData] = useState(null);
   const [anomalyData, setAnomalyData] = useState(null);
   const [recommendationsData, setRecommendationsData] = useState(null);
+  const [optimizationData, setOptimizationData] = useState(null);
+  const [healthData, setHealthData] = useState(null);
   const [stats, setStats] = useState(null);
   const [allAssets, setAllAssets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -53,6 +59,7 @@ export default function Analytics() {
   // Filters
   const [severityFilter, setSeverityFilter] = useState('');
   const [recTypeFilter, setRecTypeFilter] = useState('ALL');
+  const [healthRiskFilter, setHealthRiskFilter] = useState('ALL');
 
   // Modals for direct action
   const [selectedAsset, setSelectedAsset] = useState(null);
@@ -63,16 +70,20 @@ export default function Analytics() {
     try {
       setLoading(true);
       setError(null);
-      const [forecastRes, anomalyRes, recRes, statsRes, assetsRes] = await Promise.all([
+      const [forecastRes, anomalyRes, recRes, optRes, healthRes, statsRes, assetsRes] = await Promise.all([
         getForecast(),
         getAnomalies(),
         getRecommendations(),
+        getOptimization(),
+        getHealth(),
         getDashboardStats(),
         getAssets(),
       ]);
       setForecastData(forecastRes);
       setAnomalyData(anomalyRes);
       setRecommendationsData(recRes);
+      setOptimizationData(optRes);
+      setHealthData(healthRes);
       setStats(statsRes);
       setAllAssets(assetsRes || []);
     } catch (err) {
@@ -114,6 +125,14 @@ export default function Analytics() {
     return r.recommendation_type === recTypeFilter;
   });
 
+  const rawHealthAssets = healthData?.assets || [];
+  const filteredHealthAssets = rawHealthAssets.filter((h) => {
+    if (healthRiskFilter === 'ALL') return true;
+    return h.risk_level === healthRiskFilter;
+  });
+
+  const opportunities = optimizationData?.opportunities || [];
+
   // Site Performance Rows
   const sitePerformance = [
     { site: 'Downtown Metro Rail Extension', assets: 2, engineH: '110.5h', idleH: '25.4h', idlePct: '18.7%', fuelBurn: '490 gal', health: 'Optimal', healthColor: 'green' },
@@ -137,7 +156,7 @@ export default function Analytics() {
             </span>
           </div>
           <p className="text-xs text-[#627D98] mt-0.5">
-            Connected pipeline: <strong>Operational Data</strong> → <strong>Rule-Based Anomalies</strong> + <strong>Statistical Forecasts</strong> → <strong>AI Recommendations</strong> → <strong>Action</strong>
+            Connected pipeline: <strong>Operational Data</strong> → <strong>Rule-Based Anomalies</strong> + <strong>Statistical Forecasts</strong> → <strong>Optimization & Health</strong> → <strong>AI Recommendations</strong> → <strong>Action</strong>
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -243,7 +262,7 @@ export default function Analytics() {
                           {rec.priority.toUpperCase()} PRIORITY
                         </span>
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-[2px] bg-white border border-[#D9E2EC] text-[#102A43] font-mono">
-                          {rec.recommendation_type.replace('_', ' ')}
+                          {rec.recommendation_type.replace(/_/g, ' ')}
                         </span>
                       </div>
 
@@ -359,7 +378,226 @@ export default function Analytics() {
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. EXPLAINABLE ANOMALY DETECTION (RULE-BASED EXCEPTION DETECTOR)          */}
+      {/* 2. FLEET OPTIMIZATION OPPORTUNITIES (ASSET REALLOCATION ENGINE)           */}
+      {/* ========================================================================= */}
+      <div className="op-panel p-3.5 border-l-4 border-l-[#15803D]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-2 border-b border-[#D9E2EC] gap-2">
+          <div className="flex items-center gap-2">
+            <div className="flex h-6 w-6 items-center justify-center rounded-[3px] bg-[#15803D] text-white">
+              <Share2 className="h-3.5 w-3.5" />
+            </div>
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#102A43]">
+                2. Fleet Optimization & Reallocation Opportunities ({opportunities.length} Matched)
+              </span>
+              <p className="text-[11px] text-[#627D98]">Matching low-utilization or depot units with active high-demand project sites</p>
+            </div>
+          </div>
+          <span className="text-[11px] font-mono text-[#15803D] bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-[2px] font-semibold">
+            Capacity Optimization
+          </span>
+        </div>
+
+        <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+          {opportunities.length === 0 ? (
+            <div className="col-span-2 py-6 text-center text-xs text-[#627D98] bg-[#F8FAFC] rounded-[4px] border border-[#D9E2EC]">
+              All fleet assets are currently deployed at optimal capacity across project sites.
+            </div>
+          ) : (
+            opportunities.map((opt) => {
+              const matchedAsset = allAssets.find(a => a.id === opt.asset_id || a.equipment_id === opt.equipment_id);
+              return (
+                <div
+                  key={opt.id}
+                  className="p-3 rounded-[4px] border border-[#D9E2EC] bg-[#F8FAFC] flex flex-col justify-between"
+                >
+                  <div>
+                    {/* Header: Asset & Route */}
+                    <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono font-bold text-[#102A43] text-xs">{opt.equipment_id}</span>
+                        <span className="text-[11px] text-[#627D98]">({opt.equipment_type})</span>
+                      </div>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-[2px] uppercase ${
+                        opt.priority === 'high' ? 'bg-emerald-100 text-[#15803D]' : 'bg-slate-100 text-[#486581]'
+                      }`}>
+                        {opt.priority} Priority
+                      </span>
+                    </div>
+
+                    {/* Routing */}
+                    <div className="mt-2 bg-white border border-[#E2E8F0] p-2 rounded-[3px] flex items-center justify-between gap-2 text-xs">
+                      <div>
+                        <span className="text-[10px] text-[#627D98] block">Current Deployment:</span>
+                        <strong className="text-[#102A43]">{opt.current_site}</strong>
+                        <span className="text-[10px] text-[#B45309] block font-mono">Util: {opt.current_utilization}%</span>
+                      </div>
+                      <ArrowRight className="h-4 w-4 text-[#0E7490] shrink-0" />
+                      <div>
+                        <span className="text-[10px] text-[#627D98] block">Recommended Site:</span>
+                        <strong className="text-[#15803D]">{opt.recommended_site}</strong>
+                        <span className="text-[10px] text-[#0E7490] block font-mono">14d Demand: {opt.target_demand} units</span>
+                      </div>
+                    </div>
+
+                    {/* Why */}
+                    <div className="mt-2 text-xs">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-[#627D98] block">
+                        Optimization Rationale:
+                      </span>
+                      <p className="text-[#334E68] mt-0.5 leading-relaxed text-[11px]">
+                        {opt.reason}
+                      </p>
+                    </div>
+
+                    {/* Action */}
+                    <div className="mt-2 bg-emerald-50/40 border border-emerald-200 p-2 rounded-[3px] text-[11px] text-[#15803D]">
+                      <strong>Action:</strong> {opt.recommended_action}
+                    </div>
+                  </div>
+
+                  <div className="mt-3 pt-2 border-t border-[#E2E8F0] flex items-center justify-between text-xs">
+                    <span className="text-[10px] text-[#829AB1] font-mono">Status: {opt.status}</span>
+                    <div className="flex items-center gap-1.5">
+                      {matchedAsset && matchedAsset.status === 'rented' ? (
+                        <button
+                          onClick={() => {
+                            setSelectedAsset(matchedAsset);
+                            setCheckinOpen(true);
+                          }}
+                          className="px-2.5 py-1 rounded-[3px] bg-[#102A43] text-white text-[11px] font-medium hover:bg-[#0B1F33] transition"
+                        >
+                          Check In
+                        </button>
+                      ) : matchedAsset ? (
+                        <button
+                          onClick={() => {
+                            setSelectedAsset(matchedAsset);
+                            setCheckoutOpen(true);
+                          }}
+                          className="px-2.5 py-1 rounded-[3px] bg-[#15803D] text-white text-[11px] font-medium hover:bg-[#166534] transition"
+                        >
+                          Dispatch to Site
+                        </button>
+                      ) : null}
+                      {matchedAsset && (
+                        <Link
+                          to={`/assets/${matchedAsset.id}`}
+                          className="px-2 py-1 rounded-[3px] border border-[#D9E2EC] bg-white text-[#334E68] text-[11px] font-medium hover:bg-[#F0F4F8] transition"
+                        >
+                          Inspect
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 3. EQUIPMENT HEALTH & OPERATIONAL RISK SCORES                             */}
+      {/* ========================================================================= */}
+      <div className="op-panel p-3.5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-2 border-b border-[#D9E2EC] gap-2">
+          <div className="flex items-center gap-2">
+            <HeartPulse className="h-4 w-4 text-[#B91C1C]" />
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#334E68]">
+                3. Equipment Operational Health & Risk Scores
+              </span>
+              <p className="text-[11px] text-[#627D98]">Explainable 0–100 scoring based on telematics duty cycle, idle benchmarks, and overdue states</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-mono bg-white border border-[#D9E2EC] px-2 py-1 rounded-[3px] text-[#102A43] font-bold">
+              Fleet Avg: {healthData?.fleet_average_health ?? 81.2} / 100
+            </span>
+            <select
+              value={healthRiskFilter}
+              onChange={(e) => setHealthRiskFilter(e.target.value)}
+              className="rounded-[3px] border border-[#D9E2EC] bg-white px-2 py-1 text-xs text-[#102A43] focus:border-[#0E7490] focus:outline-none"
+            >
+              <option value="ALL">All Assets ({rawHealthAssets.length})</option>
+              <option value="WATCH">Watch Only ({healthData?.watch_count ?? 0})</option>
+              <option value="HIGH_RISK">High Risk ({healthData?.high_risk_count ?? 0})</option>
+              <option value="HEALTHY">Healthy ({healthData?.healthy_count ?? 0})</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Health Assets Grid */}
+        <div className="mt-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 text-xs">
+          {filteredHealthAssets.map((assetHealth) => (
+            <div
+              key={assetHealth.asset_id}
+              className={`p-3 rounded-[4px] border flex flex-col justify-between ${
+                assetHealth.risk_level === 'HIGH_RISK'
+                  ? 'border-red-300 bg-red-50/20'
+                  : assetHealth.risk_level === 'WATCH'
+                  ? 'border-amber-300 bg-amber-50/15'
+                  : 'border-[#D9E2EC] bg-[#F8FAFC]'
+              }`}
+            >
+              <div>
+                <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-1.5">
+                  <div>
+                    <span className="font-mono font-bold text-[#102A43]">{assetHealth.equipment_id}</span>
+                    <span className="text-[10px] text-[#627D98] block">{assetHealth.equipment_type}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className={`font-mono text-sm font-bold block ${
+                      assetHealth.health_score >= 70 ? 'text-[#15803D]' : assetHealth.health_score >= 40 ? 'text-[#B45309]' : 'text-[#B91C1C]'
+                    }`}>
+                      {assetHealth.health_score} / 100
+                    </span>
+                    <span className={`text-[9px] font-bold uppercase px-1 py-0.2 rounded-[2px] ${
+                      assetHealth.risk_level === 'HEALTHY' ? 'bg-emerald-100 text-[#15803D]' : assetHealth.risk_level === 'WATCH' ? 'bg-amber-100 text-[#B45309]' : 'bg-red-100 text-[#B91C1C]'
+                    }`}>
+                      {assetHealth.risk_level.replace('_', ' ')}
+                    </span>
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-[#334E68] mt-2 leading-relaxed">
+                  {assetHealth.summary}
+                </p>
+
+                {/* Score Factor Deductions */}
+                {assetHealth.factors && assetHealth.factors.length > 0 && (
+                  <div className="mt-2 space-y-1 bg-white border border-[#E2E8F0] p-1.5 rounded-[3px]">
+                    <span className="text-[10px] font-bold text-[#627D98] uppercase tracking-wider block">
+                      Score Factors:
+                    </span>
+                    {assetHealth.factors.map((f, fIdx) => (
+                      <div key={fIdx} className="text-[10px] flex items-start justify-between gap-1 border-t border-[#F0F4F8] pt-1">
+                        <span className="text-[#334E68] leading-tight">{f.message}</span>
+                        <span className="font-mono font-bold text-[#B91C1C] shrink-0">{f.impact} pts</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-2.5 pt-1.5 border-t border-[#E2E8F0] flex items-center justify-between text-[11px]">
+                <span className="text-[#829AB1]">{assetHealth.current_site || 'Depot'}</span>
+                <Link
+                  to={`/assets/${assetHealth.asset_id}`}
+                  className="text-[#0E7490] hover:underline font-medium flex items-center gap-0.5"
+                >
+                  Asset Profile <ArrowRight className="h-2.5 w-2.5" />
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 4. EXPLAINABLE ANOMALY DETECTION (RULE-BASED EXCEPTION DETECTOR)          */}
       {/* ========================================================================= */}
       <div className="op-panel p-3.5">
         <div className="flex items-center justify-between pb-2 border-b border-[#D9E2EC]">
@@ -367,7 +605,7 @@ export default function Analytics() {
             <Flame className="h-4 w-4 text-[#B45309]" />
             <div>
               <span className="text-xs font-semibold uppercase tracking-wider text-[#334E68]">
-                2. Explainable Anomaly Detection ({filteredAnomalies.length} Exceptions)
+                4. Explainable Anomaly Detection ({filteredAnomalies.length} Exceptions)
               </span>
               <p className="text-[11px] text-[#627D98]">Deterministic operational benchmarks: idle cutoff, lease duration, runtime, and operator audits</p>
             </div>
@@ -457,7 +695,7 @@ export default function Analytics() {
       </div>
 
       {/* ========================================================================= */}
-      {/* 3. DEMAND FORECASTING (STATISTICAL RENTAL FREQUENCY HORIZONS)              */}
+      {/* 5. DEMAND FORECASTING (STATISTICAL RENTAL FREQUENCY HORIZONS)              */}
       {/* ========================================================================= */}
       <div className="op-panel p-3.5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-2 border-b border-[#D9E2EC] gap-2">
@@ -465,7 +703,7 @@ export default function Analytics() {
             <TrendingUp className="h-4 w-4 text-[#0E7490]" />
             <div>
               <span className="text-xs font-semibold uppercase tracking-wider text-[#334E68]">
-                3. Equipment Category Demand Forecasting (7d / 14d / 30d Horizons)
+                5. Equipment Category Demand Forecasting (7d / 14d / 30d Horizons)
               </span>
               <p className="text-[11px] text-[#627D98]">Forecast derived from SQLite historical transaction turnover frequency and recent 14-day checkout velocity</p>
             </div>
@@ -559,13 +797,13 @@ export default function Analytics() {
       </div>
 
       {/* ========================================================================= */}
-      {/* 4. FLEET UTILIZATION & SITE TELEMATICS BENCHMARKS                         */}
+      {/* 6. FLEET UTILIZATION & SITE TELEMATICS BENCHMARKS                         */}
       {/* ========================================================================= */}
       <div className="op-panel p-3.5">
         <div className="flex items-center justify-between pb-2 border-b border-[#D9E2EC]">
           <span className="text-xs font-semibold uppercase tracking-wider text-[#334E68] flex items-center gap-1.5">
             <Activity className="h-3.5 w-3.5 text-[#0E7490]" />
-            4. Fleet Telematics & Site Performance Benchmarks
+            6. Fleet Telematics & Site Performance Benchmarks
           </span>
         </div>
 

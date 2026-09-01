@@ -470,6 +470,115 @@ export async function getRecommendations() {
   };
 }
 
+/**
+ * GET /api/analytics/optimization
+ * Deterministic asset reallocation and fleet optimization opportunities
+ */
+export async function getOptimization() {
+  const data = await request('/analytics/optimization');
+  if (data !== null) return data;
+  return {
+    total_opportunities: 1,
+    opportunities: [
+      {
+        id: 'opt-realloc-eq-cat-950',
+        asset_id: 5,
+        equipment_id: 'EQ-CAT-950',
+        equipment_type: 'Wheel Loader',
+        current_site: 'Apex Commercial Hub & Tower',
+        recommended_site: 'Downtown Metro Rail Extension',
+        current_utilization: 15.0,
+        target_demand: 2,
+        current_target_fleet: 1,
+        priority: 'high',
+        status: 'rented',
+        reason: 'Asset EQ-CAT-950 is operating at only 1.2 hrs/day (15.0% util) at Apex Commercial Hub, while projected 14-day Wheel Loader demand at Downtown Metro Rail Extension is 2 units.',
+        supporting_metrics: {
+          current_engine_hours_per_day: 1.2,
+          current_idle_ratio: 30.7,
+          target_site_projected_demand: 2,
+          target_site_current_units: 1,
+          demand_trend: 'increasing'
+        },
+        recommended_action: 'Reallocate EQ-CAT-950 from Apex Commercial Hub to Downtown Metro Rail Extension upon next shift rotation.',
+        impact: 'Projected utilization increase from 15.0% to >75%; satisfies high regional project demand without acquiring new fleet.'
+      }
+    ]
+  };
+}
+
+/**
+ * GET /api/analytics/health
+ * Operational health and risk scores across all fleet equipment
+ */
+export async function getHealth() {
+  const data = await request('/analytics/health');
+  if (data !== null) return data;
+  return {
+    fleet_average_health: 81.2,
+    healthy_count: 9,
+    watch_count: 3,
+    high_risk_count: 0,
+    assets: [
+      {
+        asset_id: 2,
+        equipment_id: 'EQ-CAT-336',
+        equipment_type: 'Hydraulic Excavator',
+        current_site: 'North River Highway Expansion',
+        status: 'rented',
+        health_score: 55,
+        risk_level: 'WATCH',
+        factors: [
+          {
+            metric: 'overdue_rental',
+            value: '4.0 days overdue',
+            impact: -30,
+            message: 'Lease is 4.0 days overdue, escalating operational tracking and maintenance scheduling risk.'
+          },
+          {
+            metric: 'unusually_long_rental',
+            value: '22.0 days deployed',
+            impact: -15,
+            message: 'Continuous field deployment of 22.0 days without standard depot checkup.'
+          }
+        ],
+        summary: 'Watch status: Lease is 4.0 days overdue, escalating operational tracking and maintenance scheduling risk.'
+      }
+    ]
+  };
+}
+
+/**
+ * GET /api/analytics/summary
+ * Natural-language executive fleet summary and key takeaways
+ */
+export async function getFleetSummary() {
+  const data = await request('/analytics/summary');
+  if (data !== null) return data;
+  return {
+    summary: 'Fleet utilization currently stands at 66.7% across 12 heavy machinery units (8 deployed, 3 ready in depot). 2 active rentals are overdue on scheduled return time and require immediate intake check-in. EQ-CAT-D6 at Greenfields Solar Farm Phase 2 exhibits elevated idle operation (67.3% idle), presenting a fuel conservation opportunity. 14-day regional demand for Backhoe Loaders is projected at 3 units (increasing trend). EQ-CAT-950 is recommended for reallocation from Apex Commercial Hub & Tower to Downtown Metro Rail Extension.',
+    headline: 'Fleet Active (66.7% Util) • 2 Overdue Rental Actions Required',
+    key_points: [
+      'Overdue Action: 2 rental(s) overdue (EQ-CAT-336, EQ-CAT-430) causing unbilled availability delays.',
+      'Telematics Exception: EQ-CAT-D6 logged high idle ratio (67.3% idle) at Greenfields Solar Farm Phase 2.',
+      'Demand Outlook: Backhoe Loader demand is forecast at 3 units (increasing) at Downtown Metro Rail Extension.',
+      'Optimization: Reallocate EQ-CAT-950 from Apex Commercial Hub & Tower to Downtown Metro Rail Extension to satisfy incoming demand.'
+    ],
+    generated_from: {
+      total_assets: 12,
+      rented_assets: 8,
+      available_assets: 3,
+      utilization_rate: 66.7,
+      overdue_count: 2,
+      due_soon_count: 2,
+      total_anomalies: 6,
+      fleet_average_health: 81.2,
+      high_risk_count: 0
+    },
+    generated_at: new Date().toISOString()
+  };
+}
+
 // Auxiliary helpers
 export async function getSites() {
   return mockSites;

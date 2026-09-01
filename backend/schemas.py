@@ -248,6 +248,64 @@ class RecommendationsResponse(BaseModel):
     recommendations: List[RecommendationItem]
 
 
+class OptimizationOpportunity(BaseModel):
+    id: str
+    asset_id: int
+    equipment_id: str
+    equipment_type: str
+    current_site: str
+    recommended_site: str
+    current_utilization: float
+    target_demand: int
+    current_target_fleet: int
+    priority: str  # high, medium
+    status: str    # available, rented
+    reason: str
+    supporting_metrics: Optional[Dict[str, Any]] = None
+    recommended_action: str
+    impact: str
+
+
+class OptimizationResponse(BaseModel):
+    total_opportunities: int
+    opportunities: List[OptimizationOpportunity]
+
+
+class HealthFactor(BaseModel):
+    metric: str
+    value: Any
+    impact: int
+    message: str
+
+
+class AssetHealthItem(BaseModel):
+    asset_id: int
+    equipment_id: str
+    equipment_type: str
+    current_site: Optional[str] = None
+    status: str
+    health_score: int
+    risk_level: str  # HEALTHY, WATCH, HIGH_RISK
+    factors: List[HealthFactor]
+    summary: str
+
+
+class HealthResponse(BaseModel):
+    fleet_average_health: float
+    healthy_count: int
+    watch_count: int
+    high_risk_count: int
+    assets: List[AssetHealthItem]
+
+
+class FleetSummaryResponse(BaseModel):
+    summary: str
+    headline: str
+    key_points: List[str]
+    generated_from: Dict[str, Any]
+    generated_at: datetime
+
+
 class AlertItem(BaseModel):
     id: str
     type: str  # OVERDUE, DUE_SOON

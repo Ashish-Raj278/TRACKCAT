@@ -7,8 +7,11 @@ import schemas
 from services.anomaly import detect_anomalies
 from services.forecasting import generate_demand_forecast
 from services.recommendations import generate_recommendations
+from services.optimization import generate_optimization_opportunities
+from services.health import calculate_equipment_health
+from services.summary import generate_fleet_summary
 
-router = APIRouter(prefix="/api", tags=["Analytics & Dashboard"])
+router = APIRouter(prefix="/api", tags=["Analytics & Intelligence"])
 
 
 @router.get("/dashboard/stats", response_model=schemas.DashboardStatsResponse)
@@ -52,6 +55,37 @@ def get_recommendations(db: Session = Depends(get_db)):
         high_count=high_count,
         recommendations=recommendations
     )
+
+
+@router.get("/analytics/optimization", response_model=schemas.OptimizationResponse)
+def get_optimization_opportunities(db: Session = Depends(get_db)):
+    """
+    Retrieve deterministic asset reallocation and fleet optimization opportunities
+    matching underutilized or depot assets with high-demand project sites.
+    """
+    opportunities = generate_optimization_opportunities(db)
+    return schemas.OptimizationResponse(
+        total_opportunities=len(opportunities),
+        opportunities=opportunities
+    )
+
+
+@router.get("/analytics/health", response_model=schemas.HealthResponse)
+def get_equipment_health(db: Session = Depends(get_db)):
+    """
+    Retrieve explainable operational health and risk scores (0-100) for all fleet assets
+    with factor-by-factor score deductions.
+    """
+    return calculate_equipment_health(db)
+
+
+@router.get("/analytics/summary", response_model=schemas.FleetSummaryResponse)
+def get_fleet_summary(db: Session = Depends(get_db)):
+    """
+    Retrieve a concise, natural-language executive summary of current fleet operations,
+    utilization, active exceptions, and strategic recommendations.
+    """
+    return generate_fleet_summary(db)
 
 
 @router.get("/analytics/overdue", response_model=schemas.OverdueResponse)

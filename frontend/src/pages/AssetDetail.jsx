@@ -14,7 +14,8 @@ import {
   FileText,
   FileSpreadsheet,
   Gauge,
-  QrCode
+  QrCode,
+  HeartPulse
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -26,7 +27,7 @@ import {
   Tooltip,
   Legend
 } from 'recharts';
-import { getAssetById, getAssetUsage, getAnomalies, getAlerts } from '../services/api';
+import { getAssetById, getAssetUsage, getAnomalies, getAlerts, getHealth } from '../services/api';
 import StatusBadge from '../components/StatusBadge';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
@@ -40,6 +41,7 @@ export default function AssetDetail() {
   const [asset, setAsset] = useState(null);
   const [usageData, setUsageData] = useState(null);
   const [assetAlerts, setAssetAlerts] = useState([]);
+  const [healthInfo, setHealthInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -53,15 +55,23 @@ export default function AssetDetail() {
     try {
       setLoading(true);
       setError(null);
-      const [assetRes, usageRes, anomaliesRes, alertsRes] = await Promise.all([
+      const [assetRes, usageRes, anomaliesRes, alertsRes, healthRes] = await Promise.all([
         getAssetById(id),
         getAssetUsage(id).catch(() => null),
         getAnomalies().catch(() => ({ anomalies: [] })),
         getAlerts().catch(() => ({ overdue_items: [], due_soon_items: [] })),
+        getHealth().catch(() => null),
       ]);
 
       setAsset(assetRes);
       setUsageData(usageRes);
+
+      if (healthRes?.assets && assetRes) {
+        const found = healthRes.assets.find(
+          (h) => h.equipment_id === assetRes.equipment_id || String(h.asset_id) === String(id)
+        );
+        setHealthInfo(found || null);
+      }
 
       const relevant = [];
       if (anomaliesRes?.anomalies) {
@@ -232,7 +242,63 @@ export default function AssetDetail() {
         </div>
       </div>
 
-      {/* 2. ACTIVE ALERTS (IF ANY) */}
+      {/* 2. OPERATIONAL HEALTH & RISK SCORE */}
+      {healthInfo && (
+        <div className={`op-panel p-3.5 border-l-4 ${
+          healthInfo.health_score >= 70
+            ? 'border-l-[#15803D]'
+            : healthInfo.health_score >= 40
+            ? 'border-l-[#B45309]'
+            : 'border-l-[#B91C1C]'
+        }`}>
+          <div className="flex items-center justify-between pb-2 border-b border-[#D9E2EC]">
+            <div className="flex items-center gap-2">
+              <HeartPulse className={`h-4 w-4 ${
+                healthInfo.health_score >= 70 ? 'text-[#15803D]' : healthInfo.health_score >= 40 ? 'text-[#B45309]' : 'text-[#B91C1C]'
+              }`} />
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#102A43]">
+                Operational Health & Risk Assessment
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className={`font-mono text-sm font-bold ${
+                healthInfo.health_score >= 70 ? 'text-[#15803D]' : healthInfo.health_score >= 40 ? 'text-[#B45309]' : 'text-[#B91C1C]'
+              }`}>
+                {healthInfo.health_score} / 100
+              </span>
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-[2px] uppercase ${
+                healthInfo.risk_level === 'HEALTHY'
+                  ? 'bg-emerald-100 text-[#15803D]'
+                  : healthInfo.risk_level === 'WATCH'
+                  ? 'bg-amber-100 text-[#B45309]'
+                  : 'bg-red-100 text-[#B91C1C]'
+              }`}>
+                {healthInfo.risk_level.replace('_', ' ')}
+              </span>
+            </div>
+          </div>
+
+          <p className="text-xs text-[#334E68] mt-2 leading-relaxed">
+            {healthInfo.summary}
+          </p>
+
+          {healthInfo.factors && healthInfo.factors.length > 0 && (
+            <div className="mt-2.5 space-y-1 bg-[#F8FAFC] border border-[#D9E2EC] p-2 rounded-[3px]">
+              <span className="text-[10px] font-bold text-[#627D98] uppercase tracking-wider block mb-1">
+                Score Factor Deductions:
+              </span>
+              {healthInfo.factors.map((factor, idx) => (
+                <div key={idx} className="flex items-start justify-between gap-2 text-xs py-1 border-t border-[#E2E8F0] first:border-0">
+                  <span className="text-[#334E68] leading-snug">{factor.message}</span>
+                  <span className="font-mono font-bold text-[#B91C1C] text-xs shrink-0">{factor.impact} pts</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 3. ACTIVE ALERTS (IF ANY) */}
       {assetAlerts.length > 0 && (
         <div className="op-panel p-3 bg-red-50/20 border-red-200">
           <div className="flex items-center gap-1.5 mb-1.5">

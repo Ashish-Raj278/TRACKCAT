@@ -16,7 +16,7 @@ import {
   QrCode,
   Repeat
 } from 'lucide-react';
-import { getAssets } from '../services/api';
+import { getAssets, getHealth } from '../services/api';
 import StatusBadge from '../components/StatusBadge';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
@@ -29,6 +29,7 @@ export default function AssetsList() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [assets, setAssets] = useState([]);
+  const [healthMap, setHealthMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -53,8 +54,16 @@ export default function AssetsList() {
       if (statusFilter) params.status = statusFilter;
       if (typeFilter) params.type = typeFilter;
       if (siteFilter) params.site = siteFilter;
-      const data = await getAssets(params);
-      setAssets(data || []);
+      const [assetsData, healthData] = await Promise.all([
+        getAssets(params),
+        getHealth(),
+      ]);
+      setAssets(assetsData || []);
+      const map = {};
+      (healthData?.assets || []).forEach(h => {
+        map[h.equipment_id] = h;
+      });
+      setHealthMap(map);
     } catch (err) {
       console.error('Error fetching assets:', err);
       setError(err.message || 'Unable to retrieve equipment fleet.');
@@ -234,17 +243,33 @@ export default function AssetsList() {
                   )}
                 </div>
 
-                {/* Telematics Snapshot */}
-                <div className="mt-3 grid grid-cols-2 gap-2 text-center text-xs">
-                  <div className="rounded-lg bg-slate-800/60 p-2 border border-slate-700/50">
-                    <p className="text-[10px] uppercase font-semibold text-slate-400">Avg Engine</p>
-                    <p className="text-sm font-bold text-blue-400 mt-0.5">{asset.engine_hours_per_day}h / day</p>
+                {/* Telematics & Health Snapshot */}
+                <div className="mt-3 grid grid-cols-3 gap-1.5 text-center text-xs">
+                  <div className="rounded-lg bg-slate-800/60 p-1.5 border border-slate-700/50">
+                    <p className="text-[9px] uppercase font-semibold text-slate-400">Avg Engine</p>
+                    <p className="text-xs font-bold text-blue-400 mt-0.5">{asset.engine_hours_per_day}h/d</p>
                   </div>
-                  <div className="rounded-lg bg-slate-800/60 p-2 border border-slate-700/50">
-                    <p className="text-[10px] uppercase font-semibold text-slate-400">Idle Ratio</p>
-                    <p className={`text-sm font-bold mt-0.5 ${asset.idle_ratio > 40 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                  <div className="rounded-lg bg-slate-800/60 p-1.5 border border-slate-700/50">
+                    <p className="text-[9px] uppercase font-semibold text-slate-400">Idle Ratio</p>
+                    <p className={`text-xs font-bold mt-0.5 ${asset.idle_ratio > 40 ? 'text-rose-400' : 'text-emerald-400'}`}>
                       {asset.idle_ratio}%
                     </p>
+                  </div>
+                  <div className="rounded-lg bg-slate-800/60 p-1.5 border border-slate-700/50">
+                    <p className="text-[9px] uppercase font-semibold text-slate-400">Health</p>
+                    {healthMap[asset.equipment_id] ? (
+                      <p className={`text-xs font-bold mt-0.5 ${
+                        healthMap[asset.equipment_id].health_score >= 70
+                          ? 'text-emerald-400'
+                          : healthMap[asset.equipment_id].health_score >= 40
+                          ? 'text-amber-400'
+                          : 'text-rose-400'
+                      }`}>
+                        {healthMap[asset.equipment_id].health_score}/100
+                      </p>
+                    ) : (
+                      <p className="text-xs font-bold text-slate-400 mt-0.5">--</p>
+                    )}
                   </div>
                 </div>
               </div>

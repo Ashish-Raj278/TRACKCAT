@@ -14,7 +14,14 @@ import {
   Zap,
   Sparkles
 } from 'lucide-react';
-import { getDashboardStats, getAnomalies, getAlerts, getAssets, getRecommendations } from '../services/api';
+import {
+  getDashboardStats,
+  getAnomalies,
+  getAlerts,
+  getAssets,
+  getRecommendations,
+  getFleetSummary
+} from '../services/api';
 import StatusBadge from '../components/StatusBadge';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
@@ -27,6 +34,7 @@ export default function Dashboard() {
   const [allAssets, setAllAssets] = useState([]);
   const [anomalies, setAnomalies] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
+  const [summaryData, setSummaryData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedSiteFilter, setSelectedSiteFilter] = useState('ALL');
@@ -40,12 +48,13 @@ export default function Dashboard() {
     try {
       setLoading(true);
       setError(null);
-      const [statsData, anomaliesData, alertsData, assetsData, recsData] = await Promise.all([
+      const [statsData, anomaliesData, alertsData, assetsData, recsData, sumData] = await Promise.all([
         getDashboardStats(),
         getAnomalies(),
         getAlerts(),
         getAssets(),
         getRecommendations(),
+        getFleetSummary(),
       ]);
 
       setStats(statsData);
@@ -53,6 +62,7 @@ export default function Dashboard() {
       setAlerts(alertsData || { total_alerts: 0, critical_count: 0, warning_count: 0, alerts: [], overdue_items: [], due_soon_items: [] });
       setAllAssets(assetsData || []);
       setRecommendations(recsData?.recommendations || []);
+      setSummaryData(sumData);
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
       setError(err.message || 'Failed to connect to backend dashboard service.');
@@ -148,7 +158,44 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-4 pb-6">
-      {/* 1. FLEET OVERVIEW STRIP */}
+      {/* 1. FLEET INTELLIGENCE SUMMARY (NATURAL-LANGUAGE HERO BANNER) */}
+      {summaryData && (
+        <div className="op-panel p-3.5 bg-gradient-to-r from-[#F0F4F8] via-[#F8FAFC] to-white border-l-4 border-l-[#0E7490]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-2 border-b border-[#D9E2EC] gap-1.5">
+            <div className="flex items-center gap-2">
+              <div className="flex h-6 w-6 items-center justify-center rounded-[3px] bg-[#0E7490] text-white">
+                <Sparkles className="h-3.5 w-3.5" />
+              </div>
+              <div>
+                <h2 className="text-xs font-bold uppercase tracking-wider text-[#102A43]">
+                  Fleet Intelligence Summary
+                </h2>
+                <span className="text-[11px] font-semibold text-[#0E7490]">{summaryData.headline}</span>
+              </div>
+            </div>
+            <span className="text-[10px] font-mono text-[#627D98] bg-white border border-[#D9E2EC] px-2 py-0.5 rounded-[2px]">
+              Deterministic Telematics Synthesis
+            </span>
+          </div>
+
+          <p className="text-xs text-[#334E68] mt-2.5 leading-relaxed font-normal bg-white p-2.5 rounded-[3px] border border-[#E2E8F0]">
+            "{summaryData.summary}"
+          </p>
+
+          {summaryData.key_points && summaryData.key_points.length > 0 && (
+            <div className="mt-2.5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+              {summaryData.key_points.map((point, idx) => (
+                <div key={idx} className="bg-white border border-[#D9E2EC] p-2 rounded-[3px] text-[11px] text-[#334E68] flex items-start gap-1.5">
+                  <span className="text-[#0E7490] font-bold text-xs mt-[-1px]">•</span>
+                  <span className="leading-snug">{point}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 2. FLEET OVERVIEW STRIP */}
       <div className="op-panel p-3">
         <div className="flex items-center justify-between pb-2 border-b border-[#D9E2EC]">
           <div className="flex items-center gap-2">

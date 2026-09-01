@@ -171,6 +171,38 @@ def run_audit_suite():
            res.status_code == 200 and len(recs) >= 3 and has_rec_fields,
            f"Total: {data.get('total_recommendations')}, Critical: {data.get('critical_count')}, Types: {rec_types}")
 
+    # 16. GET /api/analytics/optimization
+    res = client.get("/api/analytics/optimization")
+    data = res.json()
+    opps = data.get("opportunities", [])
+    has_opp_fields = all(
+        "asset_id" in o and "equipment_id" in o and "current_site" in o and "recommended_site" in o and "recommended_action" in o
+        for o in opps
+    )
+    record("Fleet Optimization / Reallocation", "GET /api/analytics/optimization", res.status_code,
+           res.status_code == 200 and len(opps) >= 1 and has_opp_fields,
+           f"Total Opportunities: {data.get('total_opportunities')}")
+
+    # 17. GET /api/analytics/health
+    res = client.get("/api/analytics/health")
+    data = res.json()
+    assets_health = data.get("assets", [])
+    has_health_fields = all(
+        "equipment_id" in h and "health_score" in h and "risk_level" in h and "factors" in h and "summary" in h
+        for h in assets_health
+    )
+    record("Equipment Health & Risk Scoring", "GET /api/analytics/health", res.status_code,
+           res.status_code == 200 and len(assets_health) >= 10 and has_health_fields,
+           f"Fleet Avg: {data.get('fleet_average_health')}/100, Healthy: {data.get('healthy_count')}, Watch: {data.get('watch_count')}")
+
+    # 18. GET /api/analytics/summary
+    res = client.get("/api/analytics/summary")
+    data = res.json()
+    has_summary = bool(data.get("summary")) and len(data.get("key_points", [])) >= 3
+    record("Natural-Language Fleet Summary", "GET /api/analytics/summary", res.status_code,
+           res.status_code == 200 and has_summary,
+           f"Headline: '{data.get('headline')}', Key Points: {len(data.get('key_points', []))}")
+
     passed_count = sum(1 for r in results if r["passed"])
     total_count = len(results)
 
