@@ -1,6 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { Search, Repeat } from 'lucide-react';
+import {
+  Truck,
+  Search,
+  Filter,
+  ArrowUpDown,
+  Calendar,
+  MapPin,
+  User,
+  Activity,
+  PlusCircle,
+  Clock,
+  CheckCircle2,
+  Gauge,
+  QrCode,
+  Repeat
+} from 'lucide-react';
 import { getAssets } from '../services/api';
 import StatusBadge from '../components/StatusBadge';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -8,6 +23,7 @@ import ErrorMessage from '../components/ErrorMessage';
 import CheckoutModal from '../components/CheckoutModal';
 import CheckinModal from '../components/CheckinModal';
 import UsageLogModal from '../components/UsageLogModal';
+import AssetQRModal from '../components/AssetQRModal';
 
 export default function AssetsList() {
   const [searchParams] = useSearchParams();
@@ -27,6 +43,7 @@ export default function AssetsList() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [checkinOpen, setCheckinOpen] = useState(false);
   const [usageLogOpen, setUsageLogOpen] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
 
   const fetchFleetAssets = async () => {
     try {
@@ -161,121 +178,141 @@ export default function AssetsList() {
           No equipment records matched the selected filters.
         </div>
       ) : (
-        /* High-Density Enterprise Table */
-        <div className="op-panel overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="op-table">
-              <thead>
-                <tr>
-                  <th>Equipment ID</th>
-                  <th>Type</th>
-                  <th>Job Site</th>
-                  <th>Status</th>
-                  <th>Operator</th>
-                  <th>Engine (h/d)</th>
-                  <th>Idle (h/d)</th>
-                  <th>Utilization</th>
-                  <th>Return</th>
-                  <th className="text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredAssets.map((asset) => {
-                  const isOverdue = asset.is_overdue;
-                  const returnDateStr = asset.expected_checkin_date
-                    ? new Date(asset.expected_checkin_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
-                    : '—';
-                  const utilizationPct = asset.idle_ratio ? `${(100 - asset.idle_ratio).toFixed(0)}%` : '80%';
-
-                  return (
-                    <tr
-                      key={asset.id}
-                      onClick={() => navigate(`/assets/${asset.id}`)}
-                      className={`cursor-pointer ${isOverdue ? 'bg-red-50/30' : ''}`}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {filteredAssets.map((asset) => (
+            <div
+              key={asset.id}
+              className="flex flex-col justify-between rounded-2xl border border-slate-800 bg-slate-900/90 p-5 shadow-xl transition-all duration-200 hover:border-slate-700 hover:shadow-2xl"
+            >
+              <div>
+                {/* Card Top */}
+                <div className="flex items-start justify-between">
+                  <div>
+                    <Link
+                      to={`/assets/${asset.id}`}
+                      className="text-base font-black text-white hover:text-[#FFCD11] transition flex items-center gap-1.5"
                     >
-                      <td className="font-mono text-xs font-semibold">
-                        <Link
-                          to={`/assets/${asset.id}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="text-[#102A43] hover:text-[#0E7490]"
-                        >
-                          {asset.equipment_id}
-                        </Link>
-                      </td>
+                      {asset.equipment_id}
+                    </Link>
+                    <p className="text-xs font-medium text-slate-400">{asset.type}</p>
+                  </div>
+                  <StatusBadge status={asset.status} isOverdue={asset.is_overdue} />
+                </div>
 
-                      <td className="text-xs text-[#334E68]">{asset.type}</td>
+                {/* Details Section */}
+                <div className="mt-4 space-y-2 rounded-xl bg-slate-800/40 p-3 text-xs border border-slate-800">
+                  <div className="flex items-center justify-between text-slate-300">
+                    <span className="flex items-center gap-1 text-slate-400">
+                      <MapPin className="h-3.5 w-3.5 text-[#FFCD11]" />
+                      Location:
+                    </span>
+                    <span className="font-semibold text-white truncate max-w-[170px]">
+                      {asset.current_site || 'Main Yard Depot'}
+                    </span>
+                  </div>
 
-                      <td className="text-xs text-[#334E68] max-w-xs truncate" title={asset.current_site}>
-                        {asset.current_site || 'Central Depot'}
-                      </td>
+                  <div className="flex items-center justify-between text-slate-300">
+                    <span className="flex items-center gap-1 text-slate-400">
+                      <User className="h-3.5 w-3.5 text-blue-400" />
+                      Operator:
+                    </span>
+                    <span className="font-medium text-slate-200">
+                      {asset.last_operator?.name || 'Unassigned'}
+                    </span>
+                  </div>
 
-                      <td>
-                        <StatusBadge status={asset.status} isOverdue={asset.is_overdue} />
-                      </td>
+                  {asset.expected_checkin_date && (
+                    <div className="flex items-center justify-between text-slate-300">
+                      <span className="flex items-center gap-1 text-slate-400">
+                        <Calendar className="h-3.5 w-3.5 text-amber-400" />
+                        Return Date:
+                      </span>
+                      <span className={`font-semibold ${asset.is_overdue ? 'text-rose-400' : 'text-slate-200'}`}>
+                        {new Date(asset.expected_checkin_date).toLocaleDateString()}
+                      </span>
+                    </div>
+                  )}
+                </div>
 
-                      <td className="text-xs text-[#486581]">
-                        {asset.last_operator?.name || '—'}
-                      </td>
+                {/* Telematics Snapshot */}
+                <div className="mt-3 grid grid-cols-2 gap-2 text-center text-xs">
+                  <div className="rounded-lg bg-slate-800/60 p-2 border border-slate-700/50">
+                    <p className="text-[10px] uppercase font-semibold text-slate-400">Avg Engine</p>
+                    <p className="text-sm font-bold text-blue-400 mt-0.5">{asset.engine_hours_per_day}h / day</p>
+                  </div>
+                  <div className="rounded-lg bg-slate-800/60 p-2 border border-slate-700/50">
+                    <p className="text-[10px] uppercase font-semibold text-slate-400">Idle Ratio</p>
+                    <p className={`text-sm font-bold mt-0.5 ${asset.idle_ratio > 40 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                      {asset.idle_ratio}%
+                    </p>
+                  </div>
+                </div>
+              </div>
 
-                      <td className="font-mono text-xs text-[#102A43]">
-                        {asset.engine_hours_per_day || 0}
-                      </td>
+              {/* Action Buttons */}
+              <div className="mt-5 pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5">
+                  <Link
+                    to={`/assets/${asset.id}`}
+                    className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:bg-slate-700 transition"
+                  >
+                    Full Specs
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setSelectedAsset(asset);
+                      setQrOpen(true);
+                    }}
+                    title="View Asset QR Code"
+                    className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-2 py-1.5 text-xs font-medium text-[#FFCD11] hover:bg-amber-500/20 transition flex items-center gap-1"
+                  >
+                    <QrCode className="h-3.5 w-3.5" />
+                    QR
+                  </button>
+                </div>
 
-                      <td className="font-mono text-xs text-[#486581]">
-                        {asset.idle_hours_per_day || 0}
-                      </td>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setSelectedAsset(asset);
+                      setUsageLogOpen(true);
+                    }}
+                    title="Log Daily Telematics"
+                    className="rounded-xl border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-700 hover:text-white transition flex items-center gap-1"
+                  >
+                    <Gauge className="h-3.5 w-3.5 text-blue-400" />
+                    Log
+                  </button>
 
-                      <td className="font-mono text-xs font-medium text-[#102A43]">
-                        {utilizationPct}
-                      </td>
-
-                      <td className="font-mono text-xs">
-                        <span className={isOverdue ? 'text-[#B91C1C] font-semibold' : 'text-[#486581]'}>
-                          {returnDateStr}
-                        </span>
-                      </td>
-
-                      <td className="text-right" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex justify-end gap-1">
-                          {asset.status === 'available' ? (
-                            <button
-                              onClick={() => {
-                                setSelectedAsset(asset);
-                                setCheckoutOpen(true);
-                              }}
-                              className="px-2 py-0.5 rounded-[3px] bg-[#102A43] text-white text-[11px] font-medium hover:bg-[#0B1F33] transition"
-                            >
-                              Check Out
-                            </button>
-                          ) : asset.status === 'rented' ? (
-                            <button
-                              onClick={() => {
-                                setSelectedAsset(asset);
-                                setCheckinOpen(true);
-                              }}
-                              className="px-2 py-0.5 rounded-[3px] bg-[#15803D] text-white text-[11px] font-medium hover:bg-[#166534] transition"
-                            >
-                              Check In
-                            </button>
-                          ) : null}
-
-                          <button
-                            onClick={() => {
-                              setSelectedAsset(asset);
-                              setUsageLogOpen(true);
-                            }}
-                            className="px-2 py-0.5 rounded-[3px] border border-[#D9E2EC] bg-white text-[#334E68] text-[11px] font-medium hover:bg-[#F0F4F8] transition"
-                          >
-                            Log
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                  {asset.status === 'available' ? (
+                    <button
+                      onClick={() => {
+                        setSelectedAsset(asset);
+                        setCheckoutOpen(true);
+                      }}
+                      className="rounded-xl bg-[#FFCD11] px-3.5 py-1.5 text-xs font-bold text-slate-950 hover:bg-[#E5B700] transition shadow-md"
+                    >
+                      Check Out
+                    </button>
+                  ) : asset.status === 'rented' ? (
+                    <button
+                      onClick={() => {
+                        setSelectedAsset(asset);
+                        setCheckinOpen(true);
+                      }}
+                      className="rounded-xl bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-emerald-500 transition shadow-md"
+                    >
+                      Check In
+                    </button>
+                  ) : (
+                    <span className="rounded-xl bg-slate-800 px-3 py-1.5 text-[11px] font-semibold text-slate-400">
+                      In Service
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -297,6 +334,11 @@ export default function AssetsList() {
         isOpen={usageLogOpen}
         onClose={() => setUsageLogOpen(false)}
         onSuccess={handleActionSuccess}
+      />
+      <AssetQRModal
+        asset={selectedAsset}
+        isOpen={qrOpen}
+        onClose={() => setQrOpen(false)}
       />
     </div>
   );

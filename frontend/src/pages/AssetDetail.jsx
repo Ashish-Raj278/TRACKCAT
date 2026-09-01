@@ -7,7 +7,14 @@ import {
   ShieldAlert,
   Clock,
   Activity,
-  FileSpreadsheet
+  AlertTriangle,
+  CheckCircle2,
+  PlusCircle,
+  TrendingUp,
+  FileText,
+  FileSpreadsheet,
+  Gauge,
+  QrCode
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -26,6 +33,7 @@ import ErrorMessage from '../components/ErrorMessage';
 import CheckoutModal from '../components/CheckoutModal';
 import CheckinModal from '../components/CheckinModal';
 import UsageLogModal from '../components/UsageLogModal';
+import AssetQRModal from '../components/AssetQRModal';
 
 export default function AssetDetail() {
   const { id } = useParams();
@@ -39,6 +47,7 @@ export default function AssetDetail() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [checkinOpen, setCheckinOpen] = useState(false);
   const [usageLogOpen, setUsageLogOpen] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
 
   const fetchAssetDetails = async () => {
     try {
@@ -166,12 +175,22 @@ export default function AssetDetail() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => setQrOpen(true)}
+              className="px-3 py-1 rounded-[4px] border border-[#D9E2EC] bg-[#F8FAFC] text-[#102A43] text-xs font-medium hover:bg-[#E2E8F0] transition inline-flex items-center gap-1.5"
+            >
+              <QrCode className="h-3.5 w-3.5 text-[#0E7490]" />
+              Asset QR Code
+            </button>
+
             <button
               onClick={() => setUsageLogOpen(true)}
-              className="px-2.5 py-1 rounded-[4px] border border-[#D9E2EC] bg-white text-xs font-medium text-[#334E68] hover:bg-[#F0F4F8] transition"
+              className="px-3 py-1 rounded-[4px] border border-[#D9E2EC] bg-[#F8FAFC] text-[#102A43] text-xs font-medium hover:bg-[#E2E8F0] transition inline-flex items-center gap-1.5"
             >
-              Log Shift Telematics
+              <Gauge className="h-3.5 w-3.5 text-[#0E7490]" />
+              Record Telematics
             </button>
 
             {asset.status === 'available' ? (
@@ -366,6 +385,11 @@ export default function AssetDetail() {
         isOpen={usageLogOpen}
         onClose={() => setUsageLogOpen(false)}
         onSuccess={handleActionSuccess}
+      />
+      <AssetQRModal
+        asset={asset}
+        isOpen={qrOpen}
+        onClose={() => setQrOpen(false)}
       />
     </div>
   );

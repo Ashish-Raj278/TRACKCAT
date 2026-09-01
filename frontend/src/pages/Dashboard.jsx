@@ -46,7 +46,7 @@ export default function Dashboard() {
 
       setStats(statsData);
       setAnomalies(anomaliesData?.anomalies || []);
-      setAlerts(alertsData || { overdue_items: [], due_soon_items: [] });
+      setAlerts(alertsData || { total_alerts: 0, critical_count: 0, warning_count: 0, alerts: [], overdue_items: [], due_soon_items: [] });
       setAllAssets(assetsData || []);
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
@@ -182,17 +182,14 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* 2. FLEET / SITE VISIBILITY (OPERATIONAL SITE MAP & DISTRIBUTION MATRIX) */}
+      {/* 2. OPERATIONAL JOB SITES PANEL */}
       <div className="op-panel p-3.5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-2.5 border-b border-[#D9E2EC] gap-2">
-          <div>
+        <div className="flex items-center justify-between pb-2 border-b border-[#D9E2EC]">
+          <div className="flex items-center gap-2">
             <span className="text-xs font-semibold uppercase tracking-wider text-[#334E68] flex items-center gap-1.5">
               <MapPin className="h-3.5 w-3.5 text-[#0E7490]" />
-              Site Visibility & Fleet Allocation Matrix
+              Active Job Sites & Deployment
             </span>
-            <p className="text-[11px] text-[#627D98] mt-0.5">
-              Centralized operational tracking of equipment volume, utilization efficiency, and site risk
-            </p>
           </div>
 
           <div className="flex items-center gap-1 text-xs">
@@ -280,18 +277,32 @@ export default function Dashboard() {
           <div className="flex items-center gap-1.5">
             <ShieldAlert className="h-4 w-4 text-[#B91C1C]" />
             <span className="text-xs font-semibold uppercase tracking-wider text-[#102A43]">
-              Attention Required ({actionableAlerts.length} Exceptions)
+              Attention Required ({(alerts.alerts?.length || actionableAlerts.length)} Exceptions)
             </span>
           </div>
           <span className="text-[11px] text-[#627D98]">Prioritized by Operational Severity</span>
         </div>
 
         <div className="mt-2.5 divide-y divide-[#D9E2EC]">
-          {actionableAlerts.map((alert, idx) => (
+          {((alerts.alerts && alerts.alerts.length > 0)
+            ? alerts.alerts.map(a => {
+                const assetObj = allAssets.find(item => item.equipment_id === a.equipment_id);
+                return {
+                  severity: a.severity === 'critical' ? 'CRITICAL' : 'WARNING',
+                  assetId: a.equipment_id,
+                  type: a.type,
+                  detail: a.message,
+                  site: a.site,
+                  action: a.type === 'OVERDUE' ? 'Process return check-in or lease renewal.' : 'Approaching return deadline.',
+                  assetObj
+                };
+              })
+            : actionableAlerts
+          ).map((alert, idx) => (
             <div key={idx} className="py-2.5 first:pt-1 last:pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="space-y-0.5">
                 <div className="flex items-center gap-2">
-                  <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-[2px] font-mono ${
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-[2px] font-mono ${
                     alert.severity === 'CRITICAL'
                       ? 'bg-red-100 text-[#B91C1C]'
                       : 'bg-amber-100 text-[#B45309]'

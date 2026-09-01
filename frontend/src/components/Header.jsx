@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Search, QrCode, Menu, Clock } from 'lucide-react';
+import NotificationBell from './NotificationBell';
 
 export default function Header({ onOpenMobileMenu, onOpenQRScanner }) {
   const location = useLocation();
@@ -110,6 +111,9 @@ export default function Header({ onOpenMobileMenu, onOpenQRScanner }) {
           <Clock className="h-3 w-3 text-[#627D98]" />
           <span>{currentTime || '01 Sep 2026 • 15:30 UTC'}</span>
         </div>
+
+        {/* Notification Bell */}
+        <NotificationBell />
 
         {/* Scan Barcode / RFID Action */}
         <button

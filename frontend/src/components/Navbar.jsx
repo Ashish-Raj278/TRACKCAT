@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Truck, CalendarDays, TrendingUp, Cpu, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, Truck, CalendarDays, TrendingUp, Cpu } from 'lucide-react';
+import NotificationBell from './NotificationBell';
 
 export default function Navbar() {
   const navItems = [
@@ -56,8 +57,9 @@ export default function Navbar() {
           })}
         </nav>
 
-        {/* System Status Pill */}
-        <div className="flex items-center gap-3">
+        {/* Right side: notification bell + status pill */}
+        <div className="flex items-center gap-2.5">
+          <NotificationBell />
           <div className="hidden sm:flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800/60 px-3 py-1 text-xs text-slate-300">
             <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
             <span className="text-[11px] font-medium text-slate-300">FastAPI Ready</span>

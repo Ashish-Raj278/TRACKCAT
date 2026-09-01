@@ -200,7 +200,8 @@ Check in an active rental. Closes the rental transaction (status `completed`), l
   "asset_id": 1,
   "checkin_time": "2026-09-01T13:00:00Z",
   "engine_hours_operated": 7.8,
-  "idle_hours_operated": 1.6
+  "idle_hours_operated": 1.6,
+  "fuel_used_gallons": 28.5
 }
 ```
 
@@ -463,5 +464,89 @@ Retrieve all active rental transactions that are currently overdue past their ex
       "operator_name": "Michael Chang"
     }
   ]
+}
+```
+
+---
+
+### `GET /api/analytics/alerts`
+Retrieve dynamic fleet return schedule alerts categorized by severity:
+- **`OVERDUE`** (`severity: critical`): Active rentals where current time exceeds `expected_return_time`.
+- **`DUE_SOON`** (`severity: warning`): Active rentals scheduled for return within the next 24 hours.
+
+Alerts are sorted with critical overdue violations first (ordered by longest overdue), followed by warning approaching return reminders (ordered by soonest due).
+
+**Sample Response (`200 OK`):**
+```json
+{
+  "total_alerts": 4,
+  "critical_count": 2,
+  "warning_count": 2,
+  "alerts": [
+    {
+      "id": "overdue-2",
+      "type": "OVERDUE",
+      "severity": "critical",
+      "equipment_id": "EQ-CAT-336",
+      "asset_type": "Hydraulic Excavator",
+      "site": "North River Highway Expansion",
+      "expected_return_time": "2026-08-28T07:35:00",
+      "overdue_hours": 96.0,
+      "hours_remaining": null,
+      "overdue_days": 4.0,
+      "message": "EQ-CAT-336 is overdue by 4 days and 0 hours at North River Highway Expansion.",
+      "rental_id": 2,
+      "operator_name": "Sarah Jenkins"
+    },
+    {
+      "id": "overdue-6",
+      "type": "OVERDUE",
+      "severity": "critical",
+      "equipment_id": "EQ-CAT-430",
+      "asset_type": "Backhoe Loader",
+      "site": "Harbor Port Logistics Terminal",
+      "expected_return_time": "2026-08-30T07:35:00",
+      "overdue_hours": 48.0,
+      "hours_remaining": null,
+      "overdue_days": 2.0,
+      "message": "EQ-CAT-430 is overdue by 2 days and 0 hours at Harbor Port Logistics Terminal.",
+      "rental_id": 6,
+      "operator_name": "Michael Chang"
+    },
+    {
+      "id": "due-soon-1",
+      "type": "DUE_SOON",
+      "severity": "warning",
+      "equipment_id": "EQ-CAT-320",
+      "asset_type": "Hydraulic Excavator",
+      "site": "Downtown Metro Rail Extension",
+      "expected_return_time": "2026-09-01T16:00:00",
+      "overdue_hours": null,
+      "hours_remaining": 6.0,
+      "overdue_days": null,
+      "message": "EQ-CAT-320 is due for return in approximately 6 hours at Downtown Metro Rail Extension.",
+      "rental_id": 1,
+      "operator_name": "Marcus Vance"
+    },
+    {
+      "id": "due-soon-4",
+      "type": "DUE_SOON",
+      "severity": "warning",
+      "equipment_id": "EQ-CAT-950",
+      "asset_type": "Wheel Loader",
+      "site": "Apex Commercial Hub & Tower",
+      "expected_return_time": "2026-09-02T00:00:00",
+      "overdue_hours": null,
+      "hours_remaining": 14.0,
+      "overdue_days": null,
+      "message": "EQ-CAT-950 is due for return in approximately 14 hours at Apex Commercial Hub & Tower.",
+      "rental_id": 4,
+      "operator_name": "James Buck Miller"
+    }
+  ],
+  "total_overdue": 2,
+  "total_due_soon": 2,
+  "overdue_items": [ ... ],
+  "due_soon_items": [ ... ]
 }
 ```
