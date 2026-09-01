@@ -171,11 +171,13 @@ def checkin_asset(
 
     # If telemetry hours logged during checkin
     if checkin_data.engine_hours_operated is not None:
+        fuel_val = checkin_data.fuel_used_gallons if checkin_data.fuel_used_gallons is not None else round(checkin_data.engine_hours_operated * 1.2, 1)
         usage = models.UsageLog(
             asset_id=asset.id,
             date=now,
             engine_hours=checkin_data.engine_hours_operated,
             idle_hours=checkin_data.idle_hours_operated or 0.0,
+            fuel_used_gallons=fuel_val,
             location=asset.current_site
         )
         db.add(usage)

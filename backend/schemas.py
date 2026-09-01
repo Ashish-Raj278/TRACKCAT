@@ -96,6 +96,7 @@ class CheckinRequest(BaseModel):
     checkin_time: Optional[datetime] = None
     engine_hours_operated: Optional[float] = None
     idle_hours_operated: Optional[float] = None
+    fuel_used_gallons: Optional[float] = None
 
 
 class RentalTransactionResponse(BaseModel):

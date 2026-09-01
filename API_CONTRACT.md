@@ -200,7 +200,8 @@ Check in an active rental. Closes the rental transaction (status `completed`), l
   "asset_id": 1,
   "checkin_time": "2026-09-01T13:00:00Z",
   "engine_hours_operated": 7.8,
-  "idle_hours_operated": 1.6
+  "idle_hours_operated": 1.6,
+  "fuel_used_gallons": 28.5
 }
 ```
 
