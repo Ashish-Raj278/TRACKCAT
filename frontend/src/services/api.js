@@ -21,7 +21,7 @@ let inMemoryUsageLogs = JSON.parse(JSON.stringify(mockUsageLogs));
  * Generic helper for making HTTP requests with automatic JSON parsing and error handling
  */
 async function request(endpoint, options = {}) {
-  const url = `${BASE_URL}${endpoint}`;
+const url = `${API_BASE_URL}${endpoint}`;
   try {
     const response = await fetch(url, {
       headers: {
