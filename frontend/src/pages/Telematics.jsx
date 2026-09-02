@@ -60,8 +60,8 @@ export default function Telematics() {
   useEffect(() => {
     fetchAssetsList();
     const handleUpdate = () => fetchAssetsList();
-    window.addEventListener('trackcat-asset-updated', handleUpdate);
-    return () => window.removeEventListener('trackcat-asset-updated', handleUpdate);
+    window.addEventListener('CAT360-asset-updated', handleUpdate);
+    return () => window.removeEventListener('CAT360-asset-updated', handleUpdate);
   }, []);
 
   const fetchTelematicsForAsset = async (assetId) => {

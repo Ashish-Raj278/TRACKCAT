@@ -11,7 +11,7 @@ import {
 
 // API Base URL from Vite environment variable or default
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "https://trackcat.onrender.com/api";
+  import.meta.env.VITE_API_BASE_URL || "https://CAT360.onrender.com/api";
 // In-memory local fallback store for seamless interactive offline/mock testing
 let inMemoryAssets = JSON.parse(JSON.stringify(mockAssets));
 let inMemoryStats = JSON.parse(JSON.stringify(mockDashboardStats));
@@ -50,7 +50,7 @@ const url = `${API_BASE_URL}${endpoint}`;
   } catch (err) {
     // If connection refused (backend offline in dev mode), fallback gracefully
     if (err.name === 'TypeError' && err.message.includes('fetch')) {
-      console.warn(`[TRACKCAT API] Backend unreachable at ${url}. Falling back to mock data.`);
+      console.warn(`[CAT360 API] Backend unreachable at ${url}. Falling back to mock data.`);
       return null;
     }
     throw err;
@@ -601,7 +601,7 @@ export async function reallocateAsset(assetId, targetSite) {
   });
   if (data !== null) {
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('trackcat-asset-updated'));
+      window.dispatchEvent(new CustomEvent('CAT360-asset-updated'));
     }
     return data;
   }
@@ -613,7 +613,7 @@ export async function reallocateAsset(assetId, targetSite) {
     inMemoryAssets[assetIndex].current_site = targetSite;
   }
   if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('trackcat-asset-updated'));
+    window.dispatchEvent(new CustomEvent('CAT360-asset-updated'));
   }
   return {
     success: true,
@@ -639,7 +639,7 @@ export async function resetDemoData() {
   inMemoryUsageLogs = JSON.parse(JSON.stringify(mockUsageLogs));
 
   if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('trackcat-asset-updated'));
+    window.dispatchEvent(new CustomEvent('CAT360-asset-updated'));
   }
   if (data !== null) return data;
   return {

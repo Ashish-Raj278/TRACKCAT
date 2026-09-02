@@ -75,8 +75,8 @@ export default function AssetsList() {
   useEffect(() => {
     fetchFleetAssets();
     const handleUpdate = () => fetchFleetAssets();
-    window.addEventListener('trackcat-asset-updated', handleUpdate);
-    return () => window.removeEventListener('trackcat-asset-updated', handleUpdate);
+    window.addEventListener('CAT360-asset-updated', handleUpdate);
+    return () => window.removeEventListener('CAT360-asset-updated', handleUpdate);
   }, [statusFilter, typeFilter, siteFilter]);
 
   const filteredAssets = assets.filter((asset) => {

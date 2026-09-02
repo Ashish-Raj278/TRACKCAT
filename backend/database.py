@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker
 
 # Database path in the backend directory
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "trackcat.db")
+DB_PATH = os.path.join(BASE_DIR, "CAT360.db")
 SQLALCHEMY_DATABASE_URL = f"sqlite:///{DB_PATH}"
 
 engine = create_engine(

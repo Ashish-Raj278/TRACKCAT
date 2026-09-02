@@ -75,7 +75,7 @@ export default function AssetQRModal({ isOpen, onClose, asset }) {
           {/* Instructions */}
           <div className="w-full rounded-xl border border-slate-800 bg-slate-950/60 p-3 text-center">
             <p className="text-[11px] text-slate-400">
-              Scan this QR code using the TRACKCAT Scanner to instantly identify this equipment and initiate check-in or check-out.
+              Scan this QR code using the CAT360 Scanner to instantly identify this equipment and initiate check-in or check-out.
             </p>
           </div>
 

@@ -49,8 +49,8 @@ export default function Rentals() {
   useEffect(() => {
     fetchRentalsData();
     const handleUpdate = () => fetchRentalsData();
-    window.addEventListener('trackcat-asset-updated', handleUpdate);
-    return () => window.removeEventListener('trackcat-asset-updated', handleUpdate);
+    window.addEventListener('CAT360-asset-updated', handleUpdate);
+    return () => window.removeEventListener('CAT360-asset-updated', handleUpdate);
   }, []);
 
   const handleActionSuccess = () => {

@@ -1,4 +1,4 @@
-# TRACKCAT – Smart Rental Intelligence System
+# CAT360 – Smart Rental Intelligence System
 ## Backend API Contract & Specification
 
 **Base URL:** `http://localhost:8000`  

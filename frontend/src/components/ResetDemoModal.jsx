@@ -68,7 +68,7 @@ export default function ResetDemoModal({ isOpen, onClose, onSuccess }) {
         ) : (
           <div className="mt-3 space-y-3">
             <p className="text-xs text-[#334E68] leading-relaxed">
-              Reset all <strong>TRACKCAT</strong> demo data to its original state?
+              Reset all <strong>CAT360</strong> demo data to its original state?
             </p>
             <div className="bg-[#F8FAFC] border border-[#E2E8F0] p-2.5 rounded-[3px] text-[11px] text-[#486581] space-y-1">
               <span className="font-semibold block text-[#102A43]">This action will restore:</span>

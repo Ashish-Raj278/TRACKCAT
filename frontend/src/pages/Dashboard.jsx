@@ -77,8 +77,8 @@ export default function Dashboard() {
   useEffect(() => {
     loadDashboardData();
     const handleUpdate = () => loadDashboardData();
-    window.addEventListener('trackcat-asset-updated', handleUpdate);
-    return () => window.removeEventListener('trackcat-asset-updated', handleUpdate);
+    window.addEventListener('CAT360-asset-updated', handleUpdate);
+    return () => window.removeEventListener('CAT360-asset-updated', handleUpdate);
   }, []);
 
   if (loading) return <LoadingSpinner message="Connecting to fleet operations stream..." />;

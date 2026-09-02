@@ -8,7 +8,7 @@ router = APIRouter(prefix="/api/demo", tags=["Demo Management"])
 @router.post("/reset", response_model=schemas.DemoResetResponse)
 def reset_demo_data():
     """
-    Restores the TRACKCAT SQLite database to its original seeded baseline state.
+    Restores the CAT360 SQLite database to its original seeded baseline state.
     Restores all assets, rental transactions, telematics logs, overdue violations,
     anomaly records, and optimization baseline conditions.
     """

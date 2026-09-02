@@ -26,7 +26,7 @@ def run_audit_suite():
         print(f"  {mark} {endpoint} -> HTTP {status_code} ({name}) {details}")
 
     print("\n=======================================================")
-    print("TRACKCAT PHASE 1 + 2 RUNTIME AUDIT TEST SUITE")
+    print("CAT360 PHASE 1 + 2 RUNTIME AUDIT TEST SUITE")
     print("=======================================================")
 
     # 1. GET /api/assets

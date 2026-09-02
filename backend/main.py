@@ -14,7 +14,7 @@ from routers import assets, rentals, usage, analytics, demo
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
-    title="TRACKCAT - Smart Rental Intelligence System API",
+    title="CAT360 - Smart Rental Intelligence System API",
     description="Backend API for heavy equipment rental tracking, telematics monitoring, anomaly detection, and demand forecasting.",
     version="1.0.0"
 )
@@ -48,7 +48,7 @@ app.include_router(demo.router)
 def root():
     return {
         "status": "healthy",
-        "system": "TRACKCAT Smart Rental Intelligence API",
+        "system": "CAT360 Smart Rental Intelligence API",
         "version": "1.0.0",
         "docs_url": "/docs"
     }

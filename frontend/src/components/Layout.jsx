@@ -55,7 +55,7 @@ export default function Layout({ children }) {
         <footer className="border-t border-[#D9E2EC] bg-white py-2 px-4 sm:px-6 text-[11px] text-[#627D98]">
           <div className="max-w-6xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-[#102A43]">TrackCAT</span>
+              <span className="font-semibold text-[#102A43]">CAT360</span>
               <span>•</span>
               <span>Fleet Operations Platform</span>
             </div>
@@ -88,7 +88,7 @@ export default function Layout({ children }) {
         onClose={() => setCheckoutModalOpen(false)}
         onSuccess={() => {
           fetchAssetsForScanner();
-          window.dispatchEvent(new CustomEvent('trackcat-asset-updated'));
+          window.dispatchEvent(new CustomEvent('CAT360-asset-updated'));
         }}
       />
 
@@ -98,7 +98,7 @@ export default function Layout({ children }) {
         onClose={() => setCheckinModalOpen(false)}
         onSuccess={() => {
           fetchAssetsForScanner();
-          window.dispatchEvent(new CustomEvent('trackcat-asset-updated'));
+          window.dispatchEvent(new CustomEvent('CAT360-asset-updated'));
         }}
       />
     </div>

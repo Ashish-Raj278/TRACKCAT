@@ -137,7 +137,7 @@ export default function Terminal() {
       setAssets(updatedAssets || []);
       const refound = updatedAssets.find(a => a.id === selectedAsset.id);
       if (refound) setSelectedAsset(refound);
-      window.dispatchEvent(new CustomEvent('trackcat-asset-updated'));
+      window.dispatchEvent(new CustomEvent('CAT360-asset-updated'));
     } catch (err) {
       setLookupError(err.message || 'Check-out transaction failed.');
     } finally {
@@ -179,7 +179,7 @@ export default function Terminal() {
       setAssets(updatedAssets || []);
       const refound = updatedAssets.find(a => a.id === selectedAsset.id);
       if (refound) setSelectedAsset(refound);
-      window.dispatchEvent(new CustomEvent('trackcat-asset-updated'));
+      window.dispatchEvent(new CustomEvent('CAT360-asset-updated'));
     } catch (err) {
       setLookupError(err.message || 'Check-in transaction failed.');
     } finally {

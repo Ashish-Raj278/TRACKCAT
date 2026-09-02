@@ -23,11 +23,11 @@ export default function NotificationBell() {
         setAlertData(data);
         // Browser notifications for new critical alerts
         if (notifPermission === 'granted' && data.alerts?.length > 0) {
-          const notified = JSON.parse(localStorage.getItem('trackcat_notified_alerts') || '[]');
+          const notified = JSON.parse(localStorage.getItem('CAT360_notified_alerts') || '[]');
           const newNotified = [...notified];
           data.alerts.forEach(alert => {
             if (!notified.includes(alert.id)) {
-              const title = alert.severity === 'critical' ? '🔴 TRACKCAT Critical Alert' : '🟠 TRACKCAT Return Reminder';
+              const title = alert.severity === 'critical' ? '🔴 CAT360 Critical Alert' : '🟠 CAT360 Return Reminder';
               new Notification(title, {
                 body: alert.message,
                 icon: '/favicon.ico',
@@ -36,7 +36,7 @@ export default function NotificationBell() {
               newNotified.push(alert.id);
             }
           });
-          localStorage.setItem('trackcat_notified_alerts', JSON.stringify(newNotified.slice(-50)));
+          localStorage.setItem('CAT360_notified_alerts', JSON.stringify(newNotified.slice(-50)));
         }
       }
     } catch (e) {

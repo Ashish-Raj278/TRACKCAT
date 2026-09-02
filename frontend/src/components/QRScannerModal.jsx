@@ -5,7 +5,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import StatusBadge from './StatusBadge';
 import { getAssets } from '../services/api';
 
-const SCANNER_ELEMENT_ID = 'trackcat-qr-scanner';
+const SCANNER_ELEMENT_ID = 'CAT360-qr-scanner';
 
 export default function QRScannerModal({ isOpen, onClose, assets = [], onSelectAssetForCheckout, onSelectAssetForCheckin }) {
   const [mode, setMode] = useState('scanner');        // 'scanner' | 'manual'

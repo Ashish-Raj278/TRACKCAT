@@ -100,8 +100,8 @@ export default function Analytics() {
   useEffect(() => {
     fetchAnalytics();
     const handleUpdate = () => fetchAnalytics();
-    window.addEventListener('trackcat-asset-updated', handleUpdate);
-    return () => window.removeEventListener('trackcat-asset-updated', handleUpdate);
+    window.addEventListener('CAT360-asset-updated', handleUpdate);
+    return () => window.removeEventListener('CAT360-asset-updated', handleUpdate);
   }, []);
 
   if (loading) return <LoadingSpinner message="Synthesizing anomaly detection, demand forecasts, and AI recommendations..." />;

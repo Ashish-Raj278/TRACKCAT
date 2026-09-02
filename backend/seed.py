@@ -12,7 +12,7 @@ import crud
 
 
 def seed_database():
-    print("Initializing TRACKCAT database schema...")
+    print("Initializing CAT360 database schema...")
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
 
@@ -574,7 +574,7 @@ def seed_database():
         total_logs = db.query(models.UsageLog).count()
 
         print("\n==========================================")
-        print("TRACKCAT DATABASE SEED COMPLETE!")
+        print("CAT360 DATABASE SEED COMPLETE!")
         print("==========================================")
         print(f"Total Assets:            {total_assets} (across {total_types} equipment types)")
         print(f"Total Sites:             {total_sites}")

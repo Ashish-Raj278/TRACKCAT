@@ -43,7 +43,7 @@ export default function Sidebar({ mobileOpen, onCloseMobile }) {
               </div>
               <div>
                 <span className="text-sm font-semibold tracking-tight text-white block leading-none">
-                  TrackCAT
+                  CAT360
                 </span>
                 <span className="text-[10px] text-[#829AB1] uppercase tracking-wider block mt-0.5">
                   Fleet Operations
