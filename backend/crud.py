@@ -566,3 +566,61 @@ def get_dashboard_stats(db: Session) -> schemas.DashboardStatsResponse:
         fleet_downtime_hours=fleet_downtime,
         active_rentals_count=active_rentals
     )
+
+
+def reallocate_asset(
+    db: Session,
+    asset_id: int,
+    target_site: str
+) -> Tuple[models.Asset, str, str]:
+    """
+    Reallocates an asset to a new target site.
+    Validates:
+    - Asset exists.
+    - Target site exists in database.
+    - Target site is not identical to current site.
+    Returns (asset, previous_site, new_site).
+    """
+    asset = db.query(models.Asset).filter(models.Asset.id == asset_id).first()
+    if not asset:
+        raise ValueError(f"Asset with ID {asset_id} does not exist.")
+
+    # Validate target site exists
+    site_obj = db.query(models.Site).filter(models.Site.site_name == target_site).first()
+    if not site_obj:
+        site_obj = db.query(models.Site).filter(models.Site.site_name.ilike(target_site)).first()
+        if not site_obj:
+            raise ValueError(f"Target site '{target_site}' does not exist.")
+
+    previous_site = asset.current_site or "Unassigned"
+    if previous_site.strip().lower() == site_obj.site_name.strip().lower():
+        raise ValueError(f"Asset {asset.equipment_id} is already stationed at '{site_obj.site_name}'.")
+
+    # Update asset site
+    asset.current_site = site_obj.site_name
+
+    # If the asset has an active rental transaction, update the rental transaction site
+    active_rental = db.query(models.RentalTransaction).filter(
+        models.RentalTransaction.asset_id == asset.id,
+        models.RentalTransaction.status == "active"
+    ).first()
+    if active_rental:
+        active_rental.site_id = site_obj.id
+
+    # Record telematics transfer log
+    db.add(
+        models.UsageLog(
+            asset_id=asset.id,
+            date=datetime.utcnow(),
+            engine_hours=0.0,
+            idle_hours=0.0,
+            fuel_used_gallons=0.0,
+            location=site_obj.site_name
+        )
+    )
+
+    db.commit()
+    db.refresh(asset)
+    _enrich_asset_metrics(asset)
+
+    return asset, previous_site, site_obj.site_name

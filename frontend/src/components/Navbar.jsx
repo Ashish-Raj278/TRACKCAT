@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Truck, CalendarDays, TrendingUp, Cpu } from 'lucide-react';
+import { LayoutDashboard, Truck, CalendarDays, TrendingUp, Cpu, RotateCcw } from 'lucide-react';
 import NotificationBell from './NotificationBell';
+import ResetDemoModal from './ResetDemoModal';
 
 export default function Navbar() {
+  const [resetModalOpen, setResetModalOpen] = useState(false);
+
   const navItems = [
     { to: '/', label: 'Overview', icon: LayoutDashboard, end: true },
     { to: '/assets', label: 'Fleet Assets', icon: Truck },
@@ -57,8 +60,16 @@ export default function Navbar() {
           })}
         </nav>
 
-        {/* Right side: notification bell + status pill */}
+        {/* Right side: reset demo + notification bell + status pill */}
         <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => setResetModalOpen(true)}
+            className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800/80 px-2.5 py-1 text-xs font-medium text-slate-300 hover:border-amber-500/40 hover:text-white transition"
+            title="Reset SQLite database to original baseline demo state"
+          >
+            <RotateCcw className="h-3 w-3 text-amber-400" />
+            <span className="hidden sm:inline text-[11px]">Reset Demo</span>
+          </button>
           <NotificationBell />
           <div className="hidden sm:flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800/60 px-3 py-1 text-xs text-slate-300">
             <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -90,6 +101,12 @@ export default function Navbar() {
           );
         })}
       </div>
+
+      {/* Reset Demo Modal */}
+      <ResetDemoModal
+        isOpen={resetModalOpen}
+        onClose={() => setResetModalOpen(false)}
+      />
     </header>
   );
 }

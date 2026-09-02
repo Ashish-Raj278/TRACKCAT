@@ -15,7 +15,8 @@ import {
   FileSpreadsheet,
   Gauge,
   QrCode,
-  HeartPulse
+  HeartPulse,
+  Share2
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -27,7 +28,7 @@ import {
   Tooltip,
   Legend
 } from 'recharts';
-import { getAssetById, getAssetUsage, getAnomalies, getAlerts, getHealth } from '../services/api';
+import { getAssetById, getAssetUsage, getAnomalies, getAlerts, getHealth, getOptimization } from '../services/api';
 import StatusBadge from '../components/StatusBadge';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
@@ -35,6 +36,7 @@ import CheckoutModal from '../components/CheckoutModal';
 import CheckinModal from '../components/CheckinModal';
 import UsageLogModal from '../components/UsageLogModal';
 import AssetQRModal from '../components/AssetQRModal';
+import ReallocateModal from '../components/ReallocateModal';
 
 export default function AssetDetail() {
   const { id } = useParams();
@@ -42,6 +44,7 @@ export default function AssetDetail() {
   const [usageData, setUsageData] = useState(null);
   const [assetAlerts, setAssetAlerts] = useState([]);
   const [healthInfo, setHealthInfo] = useState(null);
+  const [opportunity, setOpportunity] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -50,17 +53,19 @@ export default function AssetDetail() {
   const [checkinOpen, setCheckinOpen] = useState(false);
   const [usageLogOpen, setUsageLogOpen] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
+  const [reallocateOpen, setReallocateOpen] = useState(false);
 
   const fetchAssetDetails = async () => {
     try {
       setLoading(true);
       setError(null);
-      const [assetRes, usageRes, anomaliesRes, alertsRes, healthRes] = await Promise.all([
+      const [assetRes, usageRes, anomaliesRes, alertsRes, healthRes, optRes] = await Promise.all([
         getAssetById(id),
         getAssetUsage(id).catch(() => null),
         getAnomalies().catch(() => ({ anomalies: [] })),
         getAlerts().catch(() => ({ overdue_items: [], due_soon_items: [] })),
         getHealth().catch(() => null),
+        getOptimization().catch(() => ({ opportunities: [] })),
       ]);
 
       setAsset(assetRes);
@@ -71,6 +76,15 @@ export default function AssetDetail() {
           (h) => h.equipment_id === assetRes.equipment_id || String(h.asset_id) === String(id)
         );
         setHealthInfo(found || null);
+      }
+
+      if (optRes?.opportunities && assetRes) {
+        const matchedOpt = optRes.opportunities.find(
+          (o) => o.equipment_id === assetRes.equipment_id || String(o.asset_id) === String(id)
+        );
+        setOpportunity(matchedOpt || null);
+      } else {
+        setOpportunity(null);
       }
 
       const relevant = [];
@@ -298,7 +312,34 @@ export default function AssetDetail() {
         </div>
       )}
 
-      {/* 3. ACTIVE ALERTS (IF ANY) */}
+      {/* 3. OPTIMIZATION REALLOCATION OPPORTUNITY (IF ANY) */}
+      {opportunity && (
+        <div className="op-panel p-3.5 border-l-4 border-l-[#15803D] bg-emerald-50/20">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-2 border-b border-emerald-200 gap-2">
+            <div className="flex items-center gap-2">
+              <Share2 className="h-4 w-4 text-[#15803D]" />
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-[#102A43]">
+                  Optimization Opportunity: Reallocation Recommended
+                </span>
+                <p className="text-[11px] text-[#627D98]">Target Site: <strong className="text-[#15803D]">{opportunity.recommended_site}</strong> (14d Demand: {opportunity.target_demand} units)</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setReallocateOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[3px] bg-[#15803D] text-white text-xs font-semibold hover:bg-[#166534] transition shadow-xs self-start sm:self-auto"
+            >
+              <Share2 className="h-3.5 w-3.5" />
+              Reallocate Asset
+            </button>
+          </div>
+          <p className="text-xs text-[#334E68] mt-2 leading-relaxed">
+            {opportunity.reason}
+          </p>
+        </div>
+      )}
+
+      {/* 4. ACTIVE ALERTS (IF ANY) */}
       {assetAlerts.length > 0 && (
         <div className="op-panel p-3 bg-red-50/20 border-red-200">
           <div className="flex items-center gap-1.5 mb-1.5">
@@ -456,6 +497,13 @@ export default function AssetDetail() {
         asset={asset}
         isOpen={qrOpen}
         onClose={() => setQrOpen(false)}
+      />
+      <ReallocateModal
+        opportunity={opportunity}
+        asset={asset}
+        isOpen={reallocateOpen}
+        onClose={() => setReallocateOpen(false)}
+        onSuccess={handleActionSuccess}
       />
     </div>
   );

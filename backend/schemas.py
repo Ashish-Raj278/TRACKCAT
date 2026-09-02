@@ -306,6 +306,28 @@ class FleetSummaryResponse(BaseModel):
     generated_at: datetime
 
 
+class DemoResetResponse(BaseModel):
+    success: bool
+    message: str
+    assets_restored: int
+    rentals_restored: int
+    sites_restored: Optional[int] = None
+    usage_logs_restored: Optional[int] = None
+
+
+class ReallocateRequest(BaseModel):
+    target_site: str
+
+
+class ReallocateResponse(BaseModel):
+    success: bool
+    message: str
+    asset_id: int
+    equipment_id: str
+    previous_site: str
+    new_site: str
+
+
 class AlertItem(BaseModel):
     id: str
     type: str  # OVERDUE, DUE_SOON

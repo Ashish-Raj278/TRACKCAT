@@ -587,3 +587,67 @@ export async function getSites() {
 export async function getOperators() {
   return mockOperators;
 }
+
+/**
+ * POST /api/assets/{id}/reallocate
+ * Reallocate equipment asset to a new project site
+ * @param {number|string} assetId
+ * @param {string} targetSite
+ */
+export async function reallocateAsset(assetId, targetSite) {
+  const data = await request(`/assets/${assetId}/reallocate`, {
+    method: 'POST',
+    body: JSON.stringify({ target_site: targetSite }),
+  });
+  if (data !== null) {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('trackcat-asset-updated'));
+    }
+    return data;
+  }
+
+  // Fallback in-memory state update
+  const assetIndex = inMemoryAssets.findIndex(a => String(a.id) === String(assetId));
+  const prevSite = assetIndex !== -1 ? inMemoryAssets[assetIndex].current_site : 'Depot';
+  if (assetIndex !== -1) {
+    inMemoryAssets[assetIndex].current_site = targetSite;
+  }
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('trackcat-asset-updated'));
+  }
+  return {
+    success: true,
+    message: `Asset successfully reallocated to ${targetSite}.`,
+    asset_id: Number(assetId),
+    equipment_id: assetIndex !== -1 ? inMemoryAssets[assetIndex].equipment_id : `EQ-${assetId}`,
+    previous_site: prevSite,
+    new_site: targetSite
+  };
+}
+
+/**
+ * POST /api/demo/reset
+ * Restore SQLite database and demo state to initial seed baseline
+ */
+export async function resetDemoData() {
+  const data = await request('/demo/reset', {
+    method: 'POST',
+  });
+  // Reset in-memory stores as well
+  inMemoryAssets = JSON.parse(JSON.stringify(mockAssets));
+  inMemoryStats = JSON.parse(JSON.stringify(mockDashboardStats));
+  inMemoryUsageLogs = JSON.parse(JSON.stringify(mockUsageLogs));
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('trackcat-asset-updated'));
+  }
+  if (data !== null) return data;
+  return {
+    success: true,
+    message: 'Demo data successfully restored.',
+    assets_restored: 12,
+    rentals_restored: 8,
+    sites_restored: 5,
+    usage_logs_restored: 71
+  };
+}

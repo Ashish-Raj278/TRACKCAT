@@ -29,3 +29,27 @@ def get_asset(
     if not asset:
         raise HTTPException(status_code=404, detail=f"Asset with ID {id} not found")
     return asset
+
+
+@router.post("/{id}/reallocate", response_model=schemas.ReallocateResponse)
+def reallocate_asset(
+    id: int,
+    payload: schemas.ReallocateRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Reallocate an asset to a new target site.
+    Validates asset existence, target site validity, and prevents same-site reallocations.
+    """
+    try:
+        asset, prev_site, new_site = crud.reallocate_asset(db, asset_id=id, target_site=payload.target_site)
+        return schemas.ReallocateResponse(
+            success=True,
+            message=f"{asset.equipment_id} successfully reallocated from {prev_site} to {new_site}.",
+            asset_id=asset.id,
+            equipment_id=asset.equipment_id,
+            previous_site=prev_site,
+            new_site=new_site
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))

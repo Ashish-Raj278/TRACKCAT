@@ -203,6 +203,30 @@ def run_audit_suite():
            res.status_code == 200 and has_summary,
            f"Headline: '{data.get('headline')}', Key Points: {len(data.get('key_points', []))}")
 
+    # 19. POST /api/assets/{id}/reallocate
+    res_realloc = client.post("/api/assets/5/reallocate", json={"target_site": "Downtown Metro Rail Extension"})
+    data_realloc = res_realloc.json()
+    has_realloc = (
+        res_realloc.status_code == 200 and
+        data_realloc.get("success") is True and
+        data_realloc.get("new_site") == "Downtown Metro Rail Extension"
+    )
+    record("Actionable Asset Reallocation", "POST /api/assets/5/reallocate", res_realloc.status_code,
+           has_realloc,
+           f"Equipment: {data_realloc.get('equipment_id')}, Moved to: '{data_realloc.get('new_site')}'")
+
+    # 20. POST /api/demo/reset
+    res_reset = client.post("/api/demo/reset")
+    data_reset = res_reset.json()
+    has_reset = (
+        res_reset.status_code == 200 and
+        data_reset.get("success") is True and
+        data_reset.get("assets_restored") == 12
+    )
+    record("Reset Demo Data Baseline", "POST /api/demo/reset", res_reset.status_code,
+           has_reset,
+           f"Assets Restored: {data_reset.get('assets_restored')}, Active Rentals: {data_reset.get('rentals_restored')}")
+
     passed_count = sum(1 for r in results if r["passed"])
     total_count = len(results)
 

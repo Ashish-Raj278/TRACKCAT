@@ -44,6 +44,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
 import CheckinModal from '../components/CheckinModal';
 import CheckoutModal from '../components/CheckoutModal';
+import ReallocateModal from '../components/ReallocateModal';
 
 export default function Analytics() {
   const [forecastData, setForecastData] = useState(null);
@@ -61,10 +62,12 @@ export default function Analytics() {
   const [recTypeFilter, setRecTypeFilter] = useState('ALL');
   const [healthRiskFilter, setHealthRiskFilter] = useState('ALL');
 
-  // Modals for direct action
+  // Modals
   const [selectedAsset, setSelectedAsset] = useState(null);
+  const [selectedOpportunity, setSelectedOpportunity] = useState(null);
   const [checkinOpen, setCheckinOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [reallocateOpen, setReallocateOpen] = useState(false);
 
   const fetchAnalytics = async () => {
     try {
@@ -459,6 +462,17 @@ export default function Analytics() {
                   <div className="mt-3 pt-2 border-t border-[#E2E8F0] flex items-center justify-between text-xs">
                     <span className="text-[10px] text-[#829AB1] font-mono">Status: {opt.status}</span>
                     <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => {
+                          setSelectedOpportunity(opt);
+                          setReallocateOpen(true);
+                        }}
+                        className="px-2.5 py-1 rounded-[3px] bg-[#15803D] text-white text-[11px] font-medium hover:bg-[#166534] transition flex items-center gap-1 shadow-xs"
+                        title={`Reallocate ${opt.equipment_id} to ${opt.recommended_site}`}
+                      >
+                        <Share2 className="h-3 w-3" />
+                        Reallocate
+                      </button>
                       {matchedAsset && matchedAsset.status === 'rented' ? (
                         <button
                           onClick={() => {
@@ -468,16 +482,6 @@ export default function Analytics() {
                           className="px-2.5 py-1 rounded-[3px] bg-[#102A43] text-white text-[11px] font-medium hover:bg-[#0B1F33] transition"
                         >
                           Check In
-                        </button>
-                      ) : matchedAsset ? (
-                        <button
-                          onClick={() => {
-                            setSelectedAsset(matchedAsset);
-                            setCheckoutOpen(true);
-                          }}
-                          className="px-2.5 py-1 rounded-[3px] bg-[#15803D] text-white text-[11px] font-medium hover:bg-[#166534] transition"
-                        >
-                          Dispatch to Site
                         </button>
                       ) : null}
                       {matchedAsset && (
@@ -894,6 +898,12 @@ export default function Analytics() {
         asset={selectedAsset}
         isOpen={checkoutOpen}
         onClose={() => setCheckoutOpen(false)}
+        onSuccess={fetchAnalytics}
+      />
+      <ReallocateModal
+        opportunity={selectedOpportunity}
+        isOpen={reallocateOpen}
+        onClose={() => setReallocateOpen(false)}
         onSuccess={fetchAnalytics}
       />
     </div>

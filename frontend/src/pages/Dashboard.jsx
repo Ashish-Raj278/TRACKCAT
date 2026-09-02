@@ -12,7 +12,8 @@ import {
   Layers,
   ChevronRight,
   Zap,
-  Sparkles
+  Sparkles,
+  RotateCcw
 } from 'lucide-react';
 import {
   getDashboardStats,
@@ -27,6 +28,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
 import CheckoutModal from '../components/CheckoutModal';
 import CheckinModal from '../components/CheckinModal';
+import ResetDemoModal from '../components/ResetDemoModal';
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
@@ -43,6 +45,7 @@ export default function Dashboard() {
   const [selectedAsset, setSelectedAsset] = useState(null);
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
   const [checkinModalOpen, setCheckinModalOpen] = useState(false);
+  const [resetModalOpen, setResetModalOpen] = useState(false);
 
   const loadDashboardData = async () => {
     try {
@@ -203,9 +206,19 @@ export default function Dashboard() {
               Fleet Overview
             </span>
           </div>
-          <span className="text-[11px] text-[#627D98] font-mono">
-            Gateway: FastAPI :8000 • Live Sync
-          </span>
+          <div className="flex items-center gap-2.5">
+            <span className="text-[11px] text-[#627D98] font-mono hidden sm:inline">
+              Gateway: FastAPI :8000 • Live Sync
+            </span>
+            <button
+              onClick={() => setResetModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[3px] border border-[#D9E2EC] bg-[#F8FAFC] text-[#334E68] text-xs font-medium hover:bg-[#F0F4F8] hover:text-[#B91C1C] transition shadow-xs"
+              title="Reset SQLite database and restore original demo dataset"
+            >
+              <RotateCcw className="h-3 w-3 text-[#627D98]" />
+              <span>Reset Demo Data</span>
+            </button>
+          </div>
         </div>
 
         <div className="mt-2.5 grid grid-cols-2 sm:grid-cols-5 divide-y sm:divide-y-0 sm:divide-x divide-[#D9E2EC]">
@@ -644,6 +657,11 @@ export default function Dashboard() {
         asset={selectedAsset}
         isOpen={checkinModalOpen}
         onClose={() => setCheckinModalOpen(false)}
+        onSuccess={loadDashboardData}
+      />
+      <ResetDemoModal
+        isOpen={resetModalOpen}
+        onClose={() => setResetModalOpen(false)}
         onSuccess={loadDashboardData}
       />
     </div>

@@ -14,12 +14,14 @@
 | :--- | :--- | :--- | :--- |
 | **Assets** | `GET` | `/api/assets` | List all assets with optional filtering (`status`, `type`, `site`) |
 | **Assets** | `GET` | `/api/assets/{id}` | Get single asset details by ID |
+| **Assets** | `POST` | `/api/assets/{id}/reallocate` | Reallocate an asset to an active high-demand project site |
 | **Rentals** | `POST` | `/api/checkout` | Check out equipment to a site & operator with return date |
 | **Rentals** | `POST` | `/api/checkin` | Check in equipment, record telemetry, set status to `available` |
 | **Rentals** | `GET` | `/api/rentals` | List rental transaction history |
 | **Usage / Telematics** | `GET` | `/api/usage/{asset_id}` | Get telemetry logs and aggregated usage metrics (runtime, idle, fuel) |
 | **Usage / Telematics** | `POST` | `/api/usage` | Record a daily telemetry log (engine hours, idle hours, fuel, location) |
 | **Dashboard** | `GET` | `/api/dashboard/stats` | High-level fleet KPIs (utilization %, idle ratio %, total fuel, downtime) |
+| **Demo Management** | `POST` | `/api/demo/reset` | Restore SQLite database to its original seeded baseline demo state |
 | **Analytics** | `GET` | `/api/analytics/anomalies` | Detected anomalies (`HIGH_IDLE_TIME`, `LOW_UTILIZATION`, `UNUSUALLY_LONG_RENTAL`, `MISSING_OPERATOR`, `OVERDUE_RENTAL`, `EXCESSIVE_DAILY_HOURS`) |
 | **Analytics** | `GET` | `/api/analytics/forecast` | Demand forecast by equipment type (`historical_demand`, `forecast_demand`, `trend`, `recommendation_basis`) |
 | **Analytics** | `GET` | `/api/analytics/recommendations` | Explainable AI-powered recommendations connecting anomalies, forecasts, and telematics |
@@ -704,6 +706,201 @@ Explainable operational health and risk scores (0-100) across all fleet assets w
           "message": "Continuous field deployment of 22.0 days without standard depot checkup."
         }
       ],
+]
+}
+```
+
+---
+
+### `GET /api/analytics/overdue`
+Retrieve all active rental transactions that are currently overdue past their expected return date.
+
+**Sample Response (`200 OK`):**
+```json
+{
+  "total_overdue": 2,
+  "overdue_items": [
+    {
+      "equipment_id": "EQ-CAT-336",
+      "type": "Hydraulic Excavator",
+      "site": "North River Highway Expansion",
+      "expected_return_date": "2026-08-28T07:35:00",
+      "overdue_days": 4.0,
+      "rental_id": 2,
+      "operator_name": "Sarah Jenkins"
+    },
+    {
+      "equipment_id": "EQ-CAT-430",
+      "type": "Backhoe Loader",
+      "site": "Harbor Port Logistics Terminal",
+      "expected_return_date": "2026-08-30T07:35:00",
+      "overdue_days": 2.0,
+      "rental_id": 6,
+      "operator_name": "Michael Chang"
+    }
+  ]
+}
+```
+
+---
+
+### `GET /api/analytics/alerts`
+Retrieve dynamic fleet return schedule alerts categorized by severity:
+- **`OVERDUE`** (`severity: critical`): Active rentals where current time exceeds `expected_return_time`.
+- **`DUE_SOON`** (`severity: warning`): Active rentals scheduled for return within the next 24 hours.
+
+Alerts are sorted with critical overdue violations first (ordered by longest overdue), followed by warning approaching return reminders (ordered by soonest due).
+
+**Sample Response (`200 OK`):**
+```json
+{
+  "total_alerts": 4,
+  "critical_count": 2,
+  "warning_count": 2,
+  "alerts": [
+    {
+      "id": "overdue-2",
+      "type": "OVERDUE",
+      "severity": "critical",
+      "equipment_id": "EQ-CAT-336",
+      "asset_type": "Hydraulic Excavator",
+      "site": "North River Highway Expansion",
+      "expected_return_time": "2026-08-28T07:35:00",
+      "overdue_hours": 96.0,
+      "hours_remaining": null,
+      "overdue_days": 4.0,
+      "message": "EQ-CAT-336 is overdue by 4 days and 0 hours at North River Highway Expansion.",
+      "rental_id": 2,
+      "operator_name": "Sarah Jenkins"
+    },
+    {
+      "id": "overdue-6",
+      "type": "OVERDUE",
+      "severity": "critical",
+      "equipment_id": "EQ-CAT-430",
+      "asset_type": "Backhoe Loader",
+      "site": "Harbor Port Logistics Terminal",
+      "expected_return_time": "2026-08-30T07:35:00",
+      "overdue_hours": 48.0,
+      "hours_remaining": null,
+      "overdue_days": 2.0,
+      "message": "EQ-CAT-430 is overdue by 2 days and 0 hours at Harbor Port Logistics Terminal.",
+      "rental_id": 6,
+      "operator_name": "Michael Chang"
+    },
+    {
+      "id": "due-soon-1",
+      "type": "DUE_SOON",
+      "severity": "warning",
+      "equipment_id": "EQ-CAT-320",
+      "asset_type": "Hydraulic Excavator",
+      "site": "Downtown Metro Rail Extension",
+      "expected_return_time": "2026-09-01T16:00:00",
+      "overdue_hours": null,
+      "hours_remaining": 6.0,
+      "overdue_days": null,
+      "message": "EQ-CAT-320 is due for return in approximately 6 hours at Downtown Metro Rail Extension.",
+      "rental_id": 1,
+      "operator_name": "Marcus Vance"
+    },
+    {
+      "id": "due-soon-4",
+      "type": "DUE_SOON",
+      "severity": "warning",
+      "equipment_id": "EQ-CAT-950",
+      "asset_type": "Wheel Loader",
+      "site": "Apex Commercial Hub & Tower",
+      "expected_return_time": "2026-09-02T00:00:00",
+      "overdue_hours": null,
+      "hours_remaining": 14.0,
+      "overdue_days": null,
+      "message": "EQ-CAT-950 is due for return in approximately 14 hours at Apex Commercial Hub & Tower.",
+      "rental_id": 4,
+      "operator_name": "James Buck Miller"
+    }
+  ],
+  "total_overdue": 2,
+  "total_due_soon": 2,
+  "overdue_items": [ ... ],
+  "due_soon_items": [ ... ]
+}
+```
+
+---
+
+### `GET /api/analytics/optimization`
+Deterministic asset reallocation opportunities matching underutilized or depot units with active high-demand project sites based on 14-day forecasts.
+
+**Sample Response (`200 OK`):**
+```json
+{
+  "total_opportunities": 2,
+  "opportunities": [
+    {
+      "id": "opt-realloc-eq-cat-950",
+      "asset_id": 5,
+      "equipment_id": "EQ-CAT-950",
+      "equipment_type": "Wheel Loader",
+      "current_site": "Apex Commercial Hub & Tower",
+      "recommended_site": "Downtown Metro Rail Extension",
+      "current_utilization": 15.0,
+      "target_demand": 2,
+      "current_target_fleet": 1,
+      "priority": "high",
+      "status": "rented",
+      "reason": "Asset EQ-CAT-950 is operating at only 1.2 hrs/day (15.0% util) at 'Apex Commercial Hub & Tower', while projected 14-day Wheel Loader demand at 'Downtown Metro Rail Extension' is 2 units (current site fleet: 1).",
+      "supporting_metrics": {
+        "current_engine_hours_per_day": 1.2,
+        "current_idle_ratio": 30.7,
+        "target_site_projected_demand": 2,
+        "target_site_current_units": 1,
+        "demand_trend": "increasing"
+      },
+      "recommended_action": "Reallocate EQ-CAT-950 from Apex Commercial Hub & Tower to Downtown Metro Rail Extension upon next shift rotation.",
+      "impact": "Projected utilization increase from 15.0% to >75%; satisfies high regional project demand without acquiring new fleet."
+    }
+  ]
+}
+```
+
+---
+
+### `GET /api/analytics/health`
+Explainable operational health and risk scores (0-100) across all fleet assets with factor-by-factor score deductions.
+
+**Health Baseline:** 100 points
+**Risk Categories:** `HEALTHY` (70–100), `WATCH` (40–69), `HIGH_RISK` (0–39)
+
+**Sample Response (`200 OK`):**
+```json
+{
+  "fleet_average_health": 81.2,
+  "healthy_count": 9,
+  "watch_count": 3,
+  "high_risk_count": 0,
+  "assets": [
+    {
+      "asset_id": 2,
+      "equipment_id": "EQ-CAT-336",
+      "equipment_type": "Hydraulic Excavator",
+      "current_site": "North River Highway Expansion",
+      "status": "rented",
+      "health_score": 55,
+      "risk_level": "WATCH",
+      "factors": [
+        {
+          "metric": "overdue_rental",
+          "value": "4.0 days overdue",
+          "impact": -30,
+          "message": "Lease is 4.0 days overdue, escalating operational tracking and maintenance scheduling risk."
+        },
+        {
+          "metric": "unusually_long_rental",
+          "value": "22.0 days deployed",
+          "impact": -15,
+          "message": "Continuous field deployment of 22.0 days without standard depot checkup."
+        }
+      ],
       "summary": "Watch status: Lease is 4.0 days overdue, escalating operational tracking and maintenance scheduling risk."
     }
   ]
@@ -738,5 +935,51 @@ Natural-language executive fleet summary and key takeaways deterministically syn
     "high_risk_count": 0
   },
   "generated_at": "2026-09-02T00:00:00"
+}
+```
+
+---
+
+### `POST /api/assets/{id}/reallocate`
+Performs an operational reallocation of an equipment asset to a new project site. Validates target site existence, prevents duplicate stationing, updates active rental site mapping, and records a telematics transfer event.
+
+**Sample Request (`POST /api/assets/5/reallocate`):**
+```json
+{
+  "target_site": "Downtown Metro Rail Extension"
+}
+```
+
+**Sample Response (`200 OK`):**
+```json
+{
+  "success": true,
+  "message": "EQ-CAT-950 successfully reallocated from Apex Commercial Hub & Tower to Downtown Metro Rail Extension.",
+  "asset_id": 5,
+  "equipment_id": "EQ-CAT-950",
+  "previous_site": "Apex Commercial Hub & Tower",
+  "new_site": "Downtown Metro Rail Extension"
+}
+```
+
+---
+
+### `POST /api/demo/reset`
+Restores the local SQLite database to the original seeded hackathon demo state. Resets all 12 assets, 8 active rentals, 71 telematics logs, overdue violations, anomalies, optimization matches, and health scores.
+
+**Sample Request:**
+```http
+POST /api/demo/reset
+```
+
+**Sample Response (`200 OK`):**
+```json
+{
+  "success": true,
+  "message": "Demo data successfully restored to original baseline state.",
+  "assets_restored": 12,
+  "rentals_restored": 8,
+  "sites_restored": 5,
+  "usage_logs_restored": 71
 }
 ```

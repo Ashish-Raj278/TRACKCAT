@@ -583,6 +583,15 @@ def seed_database():
         print(f"Total Usage Logs:        {total_logs}")
         print("==========================================\n")
 
+        return {
+            "assets_restored": total_assets,
+            "rentals_restored": db.query(models.RentalTransaction).filter(models.RentalTransaction.status == "active").count(),
+            "total_transactions": total_transactions,
+            "sites_restored": total_sites,
+            "operators_restored": total_operators,
+            "usage_logs_restored": total_logs
+        }
+
     except Exception as e:
         db.rollback()
         print(f"Error seeding database: {e}")

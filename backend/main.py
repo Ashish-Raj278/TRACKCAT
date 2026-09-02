@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
 import models
-from routers import assets, rentals, usage, analytics
+from routers import assets, rentals, usage, analytics, demo
 
 # Create database tables if they do not exist
 Base.metadata.create_all(bind=engine)
@@ -41,6 +41,7 @@ app.include_router(assets.router)
 app.include_router(rentals.router)
 app.include_router(usage.router)
 app.include_router(analytics.router)
+app.include_router(demo.router)
 
 
 @app.get("/", tags=["Health"])
