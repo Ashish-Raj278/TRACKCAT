@@ -10,8 +10,8 @@ import {
 } from '../data/mockData';
 
 // API Base URL from Vite environment variable or default
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
-
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "https://trackcat.onrender.com/api";
 // In-memory local fallback store for seamless interactive offline/mock testing
 let inMemoryAssets = JSON.parse(JSON.stringify(mockAssets));
 let inMemoryStats = JSON.parse(JSON.stringify(mockDashboardStats));
